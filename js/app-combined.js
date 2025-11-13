@@ -8614,23 +8614,30 @@
      })();
 
  // ============================================
- // PRELOADER
+ // PRELOADER (Only Once Per Session - Work Page Only)
  // ============================================
-
  (function() {
-     // Early exit if no preloader on page
-     const preloaderElement = document.querySelector('.preloader');
-     if (!preloaderElement) {
-         console.log('No preloader on this page - skipping');
-         return;
-     }
+     document.addEventListener("DOMContentLoaded", function () {
+         // Check if we're on the work page
+         const namespace = document.querySelector('[data-barba-namespace]')?.getAttribute('data-barba-namespace');
 
-     // Check if preloader has already been shown in this session
-     const preloaderShown = sessionStorage.getItem('preloaderShown');
+         if (namespace !== 'work') {
+             console.log('Not work page - skipping preloader');
+             return;
+         }
 
-     // If already shown, skip preloader and show content immediately
-     if (preloaderShown === 'true') {
-         document.addEventListener('DOMContentLoaded', function() {
+         // Check if preloader exists
+         const preloaderElement = document.querySelector('.preloader');
+         if (!preloaderElement) {
+             console.log('No preloader element found');
+             return;
+         }
+
+         // Check if preloader has already been shown in this session
+         const preloaderShown = sessionStorage.getItem('preloaderShown');
+
+         // If already shown, skip preloader and show content immediately
+         if (preloaderShown === 'true') {
              console.log('Preloader already shown this session - skipping');
 
              // Hide preloader immediately
@@ -8656,17 +8663,15 @@
              if (logicalPrevSlide) {
                  gsap.set(logicalPrevSlide, { visibility: 'visible' });
              }
-         });
 
-         return;
-     }
+             return;
+         }
 
-     // Mark preloader as shown for this session
-     sessionStorage.setItem('preloaderShown', 'true');
+         // Mark preloader as shown for this session
+         console.log('First visit to work page - running preloader');
+         sessionStorage.setItem('preloaderShown', 'true');
 
-     // YOUR ORIGINAL CODE STARTS HERE - NO CHANGES
-     document.addEventListener("DOMContentLoaded", function () {
-
+         // YOUR ORIGINAL CODE STARTS HERE
          function prepareSlide() {
              const activeSlide = document.querySelector('.swiper-slide-active');
              const logicalPrevSlide = document.querySelector('.swiper-slide.is--prev-logical');
