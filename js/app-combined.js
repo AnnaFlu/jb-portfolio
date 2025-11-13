@@ -2236,6 +2236,109 @@
         leftPaddingValue: '0.4vw',
         mediumPaddingValue: '0.6vw',
         largePaddingValue: '0.3vw',
+            /*
+            ProjectApp.textStyling = {
+        config: {
+            leftPaddingLetters: ['B', 'D', 'E', 'F', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'P', 'R', 'S'],
+            mediumPaddingLetters: ['X'],
+            largePaddingLetters: ['A'],
+            tinyMarginLetters: ['C', 'G'],
+            leftMarginLetters: ['T', 'Y'],
+            largeMarginLetters: ['W'],
+
+            leftPaddingValue: '0.4vw',
+            mediumPaddingValue: '0.6vw',
+            largePaddingValue: '0.9vw',
+            tinyMarginValue: '-0.25vw',
+            leftMarginValue: '-0.4vw',
+            largeMarginValue: '-0.9vw'
+        },
+
+        italicizeFirstLetters(selectors, opts) {
+            var options = Object.assign({ lettersOnly: true }, opts || {});
+            var targets = Array.isArray(selectors) ? selectors : [selectors];
+            targets.forEach(function (selector) {
+                document.querySelectorAll(selector).forEach(function (rootEl) {
+                    var alreadySplit = rootEl.querySelector('.word') && rootEl.querySelector('.char');
+                    var instance = alreadySplit ? null : new SplitType(rootEl, { types: 'lines, words, chars', tagName: 'span' });
+                    var wordEls = Array.from(rootEl.querySelectorAll('.word'));
+                    wordEls.forEach(function (word) {
+                        var firstCharEl = null;
+                        if (options.lettersOnly) {
+                            var chars = word.querySelectorAll('.char');
+                            for (var i = 0; i < chars.length; i++) {
+                                var c = chars[i].textContent || '';
+                                if (/[A-Za-zÀ-ÖØ-öø-ÿĀ-žА-Яа-яЇїІіЄєҐґ]/.test(c)) {
+                                    firstCharEl = chars[i];
+                                    break;
+                                }
+                            }
+                            if (!firstCharEl && chars.length) firstCharEl = chars[0];
+                        } else {
+                            firstCharEl = word.querySelector('.char');
+                        }
+                        if (firstCharEl) firstCharEl.classList.add('has--style-italic');
+                    });
+
+                    var lines = rootEl.querySelectorAll('.line');
+                    lines.forEach(function(line) {
+                        if (!line.parentElement.classList.contains('line-wrapper')) {
+                            var wrapper = document.createElement('div');
+                            wrapper.className = 'line-wrapper';
+                            wrapper.style.overflow = 'hidden';
+                            line.parentNode.insertBefore(wrapper, line);
+                            wrapper.appendChild(line);
+                        }
+                    });
+                });
+            });
+        },
+
+        applyLetterPadding() {
+            const charElements = document.querySelectorAll('.name-xlarge .line-wrapper .line .word .char.has--style-italic');
+
+            const cfg = this.config;
+
+            charElements.forEach(element => {
+                const letter = element.textContent.trim();
+
+                element.style.paddingLeft = '';
+                element.style.paddingRight = '';
+                element.style.marginLeft = '';
+                element.style.marginRight = '';
+
+                if (cfg.leftPaddingLetters.includes(letter)) {
+                    element.style.paddingLeft = cfg.leftPaddingValue;
+                }
+
+                if (cfg.mediumPaddingLetters.includes(letter)) {
+                    element.style.paddingLeft = cfg.mediumPaddingValue;
+                }
+
+                if (cfg.largePaddingLetters.includes(letter)) {
+                    element.style.paddingLeft = cfg.largePaddingValue;
+                }
+
+                if (cfg.tinyMarginLetters.includes(letter)) {
+                    element.style.marginLeft = cfg.tinyMarginValue;
+                }
+
+                if (cfg.leftMarginLetters.includes(letter)) {
+                    element.style.marginLeft = cfg.leftMarginValue;
+                }
+
+                if (cfg.largeMarginLetters.includes(letter)) {
+                    element.style.marginLeft = cfg.largeMarginValue;
+                }
+            });
+        },
+
+        init() {
+            this.italicizeFirstLetters(['.name-block .name-medium', '.name-xlarge'], { lettersOnly: true });
+            this.applyLetterPadding();
+        }
+    };
+             */
     }
     },
 
@@ -6287,7 +6390,6 @@
             },
 
             initializeTextAnimations(popupWrapper, index) {
-                // Handle existing shuffle animations
                 const shuffleElements = popupWrapper.querySelectorAll('[data-shuffle]');
 
                 shuffleElements.forEach(element => {
@@ -6339,7 +6441,6 @@
                     })));
                 });
 
-                // Initialize simple Y animations (110% to 0%) for text-mono elements
                 const simpleAnimElements = [
                     ...popupWrapper.querySelectorAll('.popup-top_reportage .text-mono'),
                     ...popupWrapper.querySelectorAll('.popup-heading-top_reportage .text-mono')
@@ -6352,25 +6453,20 @@
                     }
                 });
 
-                // Initialize line-split animations for specific elements
                 const lineSplitElements = [
                     ...popupWrapper.querySelectorAll('.popup-heading-wrapper_reportage .name-large'),
                     ...popupWrapper.querySelectorAll('.popup-content .text-regular')
                 ];
 
-                // Special handling for text-abs (check if already split)
                 const textAbsElements = popupWrapper.querySelectorAll('.popup-heading-wrapper_reportage .text-abs');
                 textAbsElements.forEach(element => {
-                    // If not already split by another script, add to line split list
                     if (!element.querySelector('.line')) {
                         lineSplitElements.push(element);
                     } else {
-                        // If already split, just ensure lines are wrapped and positioned
                         this._ensureLinesWrappedAndPositioned(element);
                     }
                 });
 
-                // Process line split elements
                 lineSplitElements.forEach(element => {
                     if (!element.dataset.lineSplitInitialized) {
                         this._splitTextIntoLinesForPopup(element);
@@ -6382,54 +6478,42 @@
             _splitTextIntoLinesForPopup(element) {
                 if (!element || !window.SplitType) return;
 
-                // Check if element contains rich text (paragraphs)
                 const hasParagraphs = element.querySelector('p');
 
                 if (hasParagraphs) {
-                    // Handle rich text with paragraphs
                     const paragraphs = element.querySelectorAll('p');
 
                     paragraphs.forEach(p => {
-                        // Check if paragraph is empty or contains only invisible characters
                         const textContent = p.textContent.replace(/\u200D/g, '').trim(); // Remove ZWJ and trim
                         if (!textContent || textContent === '') {
                             p.style.display = 'none';
                             return;
                         }
 
-                        // Store the original HTML to preserve special characters
                         const originalHTML = p.innerHTML;
 
-                        // Temporarily set a max-width to force line wrapping for SplitType
                         const originalWidth = p.style.width;
                         const originalMaxWidth = p.style.maxWidth;
                         const computedStyle = window.getComputedStyle(element);
                         const containerWidth = element.offsetWidth || parseInt(computedStyle.width) || 800;
 
-                        // Force the paragraph to wrap at container width
                         p.style.maxWidth = containerWidth + 'px';
                         p.style.width = '100%';
 
-                        // Apply SplitType to each paragraph
                         const splitInstance = new SplitType(p, {
                             types: 'lines',
                             tagName: 'span',
                             lineClass: 'text-line'
                         });
 
-                        // Restore original width settings
                         p.style.width = originalWidth || '';
                         p.style.maxWidth = originalMaxWidth || '';
 
-                        // Get the split lines
                         const lines = p.querySelectorAll('.text-line');
 
-                        // If SplitType only created one line but the text is long, force manual splitting
                         if (lines.length === 1 && textContent.length > 100) {
-                            // Revert the split
                             splitInstance.revert();
 
-                            // Manual line splitting by sentence or at punctuation
                             const sentences = originalHTML.split(/(?<=[.!?])\s+/);
                             p.innerHTML = '';
 
@@ -6445,10 +6529,8 @@
                         }
                     });
 
-                    // Wrap all generated lines in overflow-hidden divs
                     const allLines = element.querySelectorAll('.text-line');
                     allLines.forEach(line => {
-                        // Skip if already wrapped
                         if (line.parentElement.classList.contains('overflow-hidden')) return;
 
                         const wrapper = document.createElement('div');
@@ -6457,18 +6539,15 @@
                         line.parentNode.insertBefore(wrapper, line);
                         wrapper.appendChild(line);
 
-                        // Set initial transform
                         line.style.transform = 'translateY(110%)';
                         line.style.display = 'block';
                     });
                 } else {
-                    // Original handling for simple text
                     new SplitType(element, {
                         types: 'lines',
                         tagName: 'span'
                     });
 
-                    // Wrap each line in overflow-hidden div and set initial transform
                     element.querySelectorAll('.line').forEach(line => {
                         const wrapper = document.createElement('div');
                         wrapper.className = 'overflow-hidden';
@@ -6476,7 +6555,6 @@
                         line.parentNode.insertBefore(wrapper, line);
                         wrapper.appendChild(line);
 
-                        // Set initial transform
                         line.style.transform = 'translateY(110%)';
                         line.style.display = 'block';
                     });
@@ -6484,9 +6562,7 @@
             },
 
             _ensureLinesWrappedAndPositioned(element) {
-                // For already split text-abs, ensure lines are wrapped and positioned
                 element.querySelectorAll('.line').forEach(line => {
-                    // Check if already wrapped
                     if (!line.parentElement.classList.contains('overflow-hidden')) {
                         const wrapper = document.createElement('div');
                         wrapper.className = 'overflow-hidden';
@@ -6495,7 +6571,6 @@
                         wrapper.appendChild(line);
                     }
 
-                    // Set initial transform
                     line.style.transform = 'translateY(110%)';
                     line.style.display = 'block';
                 });
@@ -6544,7 +6619,6 @@
                         instance.block.style.right = '0%';
                     }
 
-                    // Animate shuffle elements (existing animation)
                     const shuffleElements = instance.wrapper.querySelectorAll('[data-shuffle]');
                     shuffleElements.forEach(element => {
                         const targetEl = element.querySelector('[data-inner]') || element;
@@ -6557,7 +6631,6 @@
                         });
                     });
 
-                    // Animate simple Y-transform elements (text-mono)
                     const simpleAnimElements = [
                         ...instance.wrapper.querySelectorAll('.popup-top_reportage .text-mono'),
                         ...instance.wrapper.querySelectorAll('.popup-heading-top_reportage .text-mono')
@@ -6579,12 +6652,11 @@
                         }
                     });
 
-                    // Animate line-split elements
                     const lineSplitSelectors = [
                         '.popup-heading-wrapper_reportage .name-large .line',
                         '.popup-heading-wrapper_reportage .text-abs .line',
                         '.popup-content .text-regular .line',
-                        '.popup-content .text-regular .text-line'  // Added for rich text paragraphs
+                        '.popup-content .text-regular .text-line'
                     ];
 
                     const allLines = [];
@@ -6617,7 +6689,6 @@
 
                 const barbaContainer = document.querySelector('.barba-container');
 
-                // Animate shuffle elements back
                 const shuffleElements = instance.wrapper.querySelectorAll('[data-shuffle]');
                 shuffleElements.forEach(element => {
                     const targetEl = element.querySelector('[data-inner]') || element;
@@ -6632,7 +6703,6 @@
                     });
                 });
 
-                // Animate simple Y-transform elements back to 110%
                 const simpleAnimElements = [
                     ...instance.wrapper.querySelectorAll('.popup-top_reportage .text-mono'),
                     ...instance.wrapper.querySelectorAll('.popup-heading-top_reportage .text-mono')
@@ -6653,12 +6723,11 @@
                     }
                 });
 
-                // Animate line-split elements back to 110%
                 const lineSplitSelectors = [
                     '.popup-heading-wrapper_reportage .name-large .line',
                     '.popup-heading-wrapper_reportage .text-abs .line',
                     '.popup-content .text-regular .line',
-                    '.popup-content .text-regular .text-line'  // Added for rich text paragraphs
+                    '.popup-content .text-regular .text-line'
                 ];
 
                 const allLines = [];
@@ -6857,7 +6926,9 @@
                 return null;
             }
 
-            this.cleanup();
+            if (this.swiperMove || this.swiperFade) {
+                this.cleanup();
+            }
 
             const wrapperMove = swiperMoveEl.querySelector('.swiper-wrapper');
             const wrapperFade = swiperFadeEl.querySelector('.swiper-wrapper');
@@ -8342,9 +8413,6 @@
  // ============================================
  // SHARED FEATURES (Run on Every Page)
  // ============================================
- // ============================================
- // SHARED FEATURES (Run on Every Page)
- // ============================================
  ProjectApp.initSharedFeatures = function() {
      console.log('Initializing shared features');
 
@@ -8544,3 +8612,342 @@
              ProjectApp.bootstrap();
          }
      })();
+
+ // ============================================
+ // PRELOADER
+ // ============================================
+ (function() {
+     // Check if preloader has already been shown in this session
+     const preloaderShown = sessionStorage.getItem('preloaderShown');
+
+     // If already shown, skip preloader and show content immediately
+     if (preloaderShown === 'true') {
+         document.addEventListener('DOMContentLoaded', function() {
+             console.log('Preloader already shown this session - skipping');
+
+             // Hide preloader immediately
+             const preloader = document.querySelector('.preloader');
+             if (preloader) {
+                 preloader.style.display = 'none';
+             }
+
+             // Show navbar and footer immediately
+             const navbar = document.querySelector('.navbar');
+             const footer = document.querySelector('.footer');
+             if (navbar) gsap.set(navbar, { yPercent: 0 });
+             if (footer) gsap.set(footer, { yPercent: 0 });
+
+             // Unblock interactions
+             const blockedBlock = document.querySelector('.blocked-block');
+             if (blockedBlock) blockedBlock.style.pointerEvents = 'none';
+
+             // Show slides in final state
+             const activeSlide = document.querySelector('.swiper-slide-active');
+             const logicalPrevSlide = document.querySelector('.swiper-slide.is--prev-logical');
+
+             if (activeSlide) {
+                 ProjectApp.slidePresets.resetSlideElements(activeSlide);
+             }
+             if (logicalPrevSlide) {
+                 gsap.set(logicalPrevSlide, { visibility: 'visible' });
+             }
+         });
+
+         return; // Exit early - don't run preloader
+     }
+
+     // First time visiting - run preloader and mark as shown
+     document.addEventListener('DOMContentLoaded', function() {
+         console.log('First visit - running preloader');
+
+         // Mark preloader as shown for this session
+         sessionStorage.setItem('preloaderShown', 'true');
+
+         function prepareSlide() {
+             const activeSlide = document.querySelector('.swiper-slide-active');
+             const logicalPrevSlide = document.querySelector('.swiper-slide.is--prev-logical');
+
+             if (!activeSlide && !logicalPrevSlide) {
+                 return false;
+             }
+
+             if (activeSlide) {
+                 ProjectApp.slideAnimations.setSlideHidden(activeSlide);
+             }
+
+             if (logicalPrevSlide) {
+                 ProjectApp.slidePresets.setPrevSlidesHidden(logicalPrevSlide);
+             }
+
+             return !!(activeSlide && (logicalPrevSlide || document.querySelectorAll('.swiper-slide').length === 1));
+         }
+
+         if (!prepareSlide()) {
+             const checkInterval = setInterval(() => {
+                 if (prepareSlide()) {
+                     clearInterval(checkInterval);
+                 }
+             }, 50);
+
+             setTimeout(() => {
+                 clearInterval(checkInterval);
+                 const activeSlide = document.querySelector('.swiper-slide-active');
+                 const logicalPrevSlide = document.querySelector('.swiper-slide.is--prev-logical');
+                 if (activeSlide) {
+                     ProjectApp.slideAnimations.setSlideHidden(activeSlide);
+                 }
+                 if (logicalPrevSlide) {
+                     ProjectApp.slidePresets.setPrevSlidesHidden(logicalPrevSlide);
+                 }
+             }, 2000);
+         }
+
+         const timeline = gsap.timeline({ delay: 1 });
+
+         const textInner = document.querySelector('.preloader-text-inner');
+         const firstText = document.querySelector('.preloader-text-inner .preloader-text');
+         const leftImageBlock = document.querySelector('.preloader-image-block.is--left');
+         const rightImageBlock = document.querySelector('.preloader-image-block.is--right');
+         const preloader = document.querySelector('.preloader');
+         const navbar = document.querySelector('.navbar');
+         const footer = document.querySelector('.footer');
+
+         let chars = [];
+         if (firstText) {
+             const split = new SplitType(firstText, { types: 'chars' });
+             chars = split.chars || [];
+         }
+
+         if (leftImageBlock) {
+             timeline.to(leftImageBlock, { x: '0%', y: '0vh', duration: 1.2, ease: "power3.out" }, 0.05);
+         }
+         if (rightImageBlock) {
+             timeline.to(rightImageBlock, { x: '0%', y: '0vh', duration: 1.2, ease: "power3.out" }, 0.05);
+         }
+
+         if (chars.length) {
+             chars.forEach((char, index) => {
+                 const fromBottom = index % 2 === 0;
+                 timeline.fromTo(
+                     char,
+                     { yPercent: fromBottom ? 100 : -100 },
+                     { yPercent: 0, duration: 0.85, ease: "mainEase" },
+                     0.1
+                 );
+             });
+         }
+
+         timeline.add(() => {}, '-=1');
+
+         const odometerPreload = document.querySelector('.odometer');
+         const odometerContainer = document.querySelector('.odometer-container');
+         const leftDecor = document.querySelector('.decor-numbers.is--left');
+         const rightDecor = document.querySelector('.decor-numbers.is--right');
+
+         let odometerTextPreload = null;
+         let digitHeightPreload = 0;
+
+         if (odometerPreload) {
+             odometerTextPreload = odometerPreload.querySelector('.preloader-text');
+         }
+
+         if (odometerTextPreload) {
+             const computedStylePreload = window.getComputedStyle(odometerTextPreload);
+             const fontSizePreload = parseFloat(computedStylePreload.fontSize);
+             const lineHeightPreload = parseFloat(computedStylePreload.lineHeight);
+             digitHeightPreload = isNaN(lineHeightPreload) ? fontSizePreload * 1.2 : lineHeightPreload;
+
+             const tempDigits = odometerTextPreload.textContent.split('');
+             odometerTextPreload.innerHTML = '';
+
+             tempDigits.forEach((digit, index) => {
+                 const span = document.createElement('span');
+                 span.textContent = digit;
+                 span.style.display = 'inline-block';
+
+                 if (index === 0) {
+                     span.style.transform = `translateY(${digitHeightPreload * 5}px)`;
+                     span.style.opacity = '0';
+                 }
+
+                 odometerTextPreload.appendChild(span);
+             });
+         }
+
+         timeline.add('moveText');
+
+         if (firstText) {
+             timeline.to(firstText, { y: '-90%', duration: 0.4, ease: 'power1.out' }, 'moveText');
+         }
+
+         if (textInner) {
+             timeline.to(textInner, { y: '-50%', duration: 0.3, ease: 'power1.in' }, 'moveText+=0.35');
+         }
+
+         timeline.add('odometerStart');
+
+         timeline.add(() => { animateOdometer(); }, 'odometerStart-=0.05');
+
+         if (leftImageBlock) {
+             timeline.to(leftImageBlock, { x: '0%', top: '-380%', duration: 3.5, ease: 'power2.inOut' }, 'odometerStart-=1');
+         }
+         if (rightImageBlock) {
+             timeline.to(rightImageBlock, { x: '0%', bottom: '-380%', duration: 3.5, ease: 'power2.inOut' }, 'odometerStart-=1');
+         }
+         if (leftDecor) {
+             timeline.to(leftDecor, { y: '120vw', duration: 3.5, ease: 'power2.inOut' }, 'odometerStart-=1');
+         }
+         if (rightDecor) {
+             timeline.to(rightDecor, { y: '-120vw', duration: 3.5, ease: 'power2.inOut' }, 'odometerStart-=1');
+         }
+
+         timeline.add(() => {}, 'odometerStart+=2.5');
+
+         const leftText = document.querySelector('.preloader-text.is--left');
+         const rightText = document.querySelector('.preloader-text.is--right');
+         const textFinal = document.querySelector('.preloader-text-final');
+         const preloaderBackground = document.querySelector('.preloader-background');
+         const imageWrapper = document.querySelector('.preloader-image-wrapper');
+
+         const leftWidth = leftText ? window.getComputedStyle(leftText).width : '0px';
+         const rightWidth = rightText ? window.getComputedStyle(rightText).width : '0px';
+         const rightMargin = rightText ? window.getComputedStyle(rightText).marginLeft : '0px';
+
+         if (leftText) {
+             gsap.set(leftText, { width: '0px' });
+         }
+         if (rightText) {
+             gsap.set(rightText, { width: '0px', marginLeft: '0px' });
+         }
+
+         if (odometerContainer) {
+             timeline.to(odometerContainer, { yPercent: -100, duration: 0.5, ease: 'power2.inOut' }, 'odometerStart+=1.5');
+         }
+
+         if (textFinal) {
+             timeline.to(textFinal, { width: '25vw', duration: 0.7, delay: 0.1, ease: 'power3.inOut' }, 'odometerStart+=1.5');
+         }
+         if (leftText) {
+             timeline.to(leftText, { width: leftWidth, duration: 0.7, delay: 0.1, ease: 'power3.inOut' }, 'odometerStart+=1.5');
+         }
+         if (rightText) {
+             timeline.to(rightText, { width: rightWidth, marginLeft: rightMargin, duration: 0.7, delay: 0.1, ease: '' }, 'odometerStart+=1.5');
+         }
+
+         if (textFinal) {
+             timeline.to(textFinal, { width: '61vw', duration: 0.8, ease: 'power3.inOut' }, 'odometerStart+=2.5');
+         }
+         if (imageWrapper) {
+             timeline.to(imageWrapper, { width: '0%', duration: 0.8, ease: 'transitionEase' }, 'odometerStart+=2.5');
+         }
+         if (preloaderBackground) {
+             timeline.to(preloaderBackground, { opacity: 0, duration: 0.8, ease: 'power3.inOut' }, 'odometerStart+=3');
+         }
+
+         if (leftImageBlock) {
+             timeline.to(leftImageBlock, { x: '-50%', duration: 0.4, ease: 'transitionEase' }, 'odometerStart+=2.65');
+         }
+         if (rightImageBlock) {
+             timeline.to(rightImageBlock, { x: '50%', duration: 0.4, ease: 'transitionEase' }, 'odometerStart+=2.65');
+         }
+
+         if (navbar) {
+             timeline.from(navbar, { yPercent: -100, duration: 0.6, ease: 'power3.inOut' }, 'odometerStart+=2.8');
+         }
+         if (footer) {
+             timeline.from(footer, { yPercent: 100, duration: 0.6, ease: 'power3.inOut' }, 'odometerStart+=2.8');
+         }
+
+         if (leftText) {
+             timeline.to(leftText, { y: '-100%', duration: 0.8, ease: 'headingHoverEase' }, 'odometerStart+=3.5');
+         }
+         if (rightText) {
+             timeline.to(rightText, { y: '100%', duration: 0.8, ease: 'headingHoverEase' }, 'odometerStart+=3.5');
+         }
+
+         timeline.add(() => {
+             ProjectApp.slideAnimations.animatePreloaderSlideIn();
+         }, 'odometerStart+=3.8');
+
+         if (preloader) {
+             timeline.add(() => {
+                 const logicalPrevSlide = document.querySelector('.swiper-slide.is--prev-logical');
+                 if (logicalPrevSlide) {
+                     gsap.set(logicalPrevSlide, { visibility: 'visible' });
+                 }
+             }, 'odometerStart+=5.8');
+
+             timeline.to(preloader, { opacity: '0', duration: 0 }, 'odometerStart+=4.6');
+         }
+
+         timeline.set('.blocked-block', { pointerEvents: 'none' }, 'odometerStart+=5.5');
+
+         function animateOdometer() {
+             const odometer = document.querySelector('.odometer');
+             if (!odometer) return;
+
+             const odometerText = odometer.querySelector('.preloader-text');
+             const endValue = 99;
+
+             let fontSize = 16, lineHeight = 19.2;
+             if (odometerText) {
+                 const computedStyle = window.getComputedStyle(odometerText);
+                 fontSize = parseFloat(computedStyle.fontSize) || 16;
+                 lineHeight = parseFloat(computedStyle.lineHeight) || fontSize * 1.2;
+             }
+             const digitHeight = lineHeight;
+
+             odometer.innerHTML = '';
+
+             const endDigits = endValue.toString().split('').map(Number);
+             endDigits.forEach((endDigit, digitIndex) => {
+                 const digitContainer = document.createElement('div');
+                 digitContainer.classList.add('digit-container');
+                 digitContainer.style.height = `${digitHeight}px`;
+                 digitContainer.style.overflow = 'hidden';
+                 digitContainer.style.display = 'inline-block';
+                 digitContainer.style.position = 'relative';
+
+                 const digitStrip = document.createElement('div');
+                 digitStrip.classList.add('digit-strip');
+                 digitStrip.style.position = 'relative';
+
+                 const repeatCount = digitIndex === 0 ? 1 : 2;
+
+                 for (let repeat = 0; repeat < repeatCount; repeat++) {
+                     for (let i = 0; i < 10; i++) {
+                         const digit = document.createElement('div');
+                         digit.textContent = i;
+                         digit.classList.add('digit');
+                         digit.style.height = `${digitHeight}px`;
+                         digit.style.fontSize = `${fontSize}px`;
+                         digit.style.lineHeight = `${digitHeight}px`;
+                         digitStrip.appendChild(digit);
+                     }
+                 }
+
+                 digitContainer.appendChild(digitStrip);
+                 odometer.appendChild(digitContainer);
+
+                 const finalPosition = digitIndex === 0 ? 9 : 19;
+                 const targetY = -(finalPosition * digitHeight);
+
+                 if (digitIndex === 0) {
+                     gsap.set(digitStrip, { y: digitHeight * 5 });
+                 } else {
+                     gsap.set(digitStrip, { y: 0 });
+                 }
+
+                 const delay = digitIndex === 0 ? 0.05 : 0;
+                 const duration = digitIndex === 0 ? 1.3 : 1.25;
+
+                 gsap.to(digitStrip, {
+                     y: targetY,
+                     duration,
+                     delay,
+                     ease: 'transitionEase'
+                 });
+             });
+         }
+     });
+ })();
