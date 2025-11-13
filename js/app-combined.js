@@ -3333,7 +3333,7 @@
         const currentY = gsap.getProperty(wrapper, 'y');
         const scrollDelta = e.deltaY || e.detail || (e.wheelDelta * -1);
 
-        const scrollMultiplier = 0.2;
+        const scrollMultiplier = 0.5;
         let newY = direction === 1
         ? currentY - (scrollDelta * scrollMultiplier)
         : currentY + (scrollDelta * scrollMultiplier);
