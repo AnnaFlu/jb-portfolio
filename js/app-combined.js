@@ -8616,13 +8616,11 @@
  // ============================================
  // PRELOADER
  // ============================================
- // ============================================
- // PRELOADER (Only Once Per Session)
- // ============================================
+
  (function() {
      // Early exit if no preloader on page
-     const preloader = document.querySelector('.preloader');
-     if (!preloader) {
+     const preloaderElement = document.querySelector('.preloader');
+     if (!preloaderElement) {
          console.log('No preloader on this page - skipping');
          return;
      }
@@ -8636,7 +8634,7 @@
              console.log('Preloader already shown this session - skipping');
 
              // Hide preloader immediately
-             preloader.style.display = 'none';
+             preloaderElement.style.display = 'none';
 
              // Show navbar and footer immediately
              const navbar = document.querySelector('.navbar');
@@ -8663,12 +8661,11 @@
          return;
      }
 
-     // First time visiting - run preloader
-     document.addEventListener('DOMContentLoaded', function() {
-         console.log('First visit - running preloader');
+     // Mark preloader as shown for this session
+     sessionStorage.setItem('preloaderShown', 'true');
 
-         // Mark preloader as shown for this session
-         sessionStorage.setItem('preloaderShown', 'true');
+     // YOUR ORIGINAL CODE STARTS HERE - NO CHANGES
+     document.addEventListener("DOMContentLoaded", function () {
 
          function prepareSlide() {
              const activeSlide = document.querySelector('.swiper-slide-active');
@@ -8715,6 +8712,7 @@
          const firstText = document.querySelector('.preloader-text-inner .preloader-text');
          const leftImageBlock = document.querySelector('.preloader-image-block.is--left');
          const rightImageBlock = document.querySelector('.preloader-image-block.is--right');
+         const preloader = document.querySelector('.preloader');
          const navbar = document.querySelector('.navbar');
          const footer = document.querySelector('.footer');
 
