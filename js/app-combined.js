@@ -5847,7 +5847,7 @@
             this.visuals.cleanup();
             this.lenis.cleanup();
             this.textScrollAnimation.cleanup();
-        };
+        }
 
     };
 
