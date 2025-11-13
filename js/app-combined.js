@@ -8300,10 +8300,10 @@
                              ProjectApp.barbaManager.swapBlockAlignments(blocks);
                              ProjectApp.state.isTransitioning = false;
 
-                             // Initialize shared features for all pages
+                             // Initialize shared features for ALL pages (includes all animations)
                              ProjectApp.initSharedFeatures();
 
-                             // Page animations
+                             // Page animations (if you have this module)
                              if (ProjectApp.pageAnimations?.initAll) {
                                  ProjectApp.pageAnimations.initAll();
                              }
@@ -8342,22 +8342,47 @@
  // ============================================
  // SHARED FEATURES (Run on Every Page)
  // ============================================
+ // ============================================
+ // SHARED FEATURES (Run on Every Page)
+ // ============================================
  ProjectApp.initSharedFeatures = function() {
+     console.log('Initializing shared features');
+
      // Text styling
      if (ProjectApp.textStyling?.init) {
          ProjectApp.textStyling.init();
      }
 
-     // Shared animations (on every page)
-     ProjectApp.animations.initLinkHover();
-     ProjectApp.animations.initBackgroundImageHover();
-     ProjectApp.animations.initBackgroundHoverBlock();
+     // ALL Animations (on every page)
+     if (ProjectApp.animations) {
+         // Link hover with shuffle effect
+         ProjectApp.animations.initLinkHover();
+
+         // Background image hover (for project items)
+         ProjectApp.state.backgroundHoverHandler = ProjectApp.animations.initBackgroundImageHover();
+
+         // Background hover block (magnified image effect)
+         ProjectApp.animations.initBackgroundHoverBlock();
+
+         // Guilds animations (shuffle text in guilds section)
+         ProjectApp.animations.initGuildsAnimations();
+
+         // Press animations (shuffle text in press section)
+         ProjectApp.animations.initPressAnimations();
+
+         // Poster block animations (reportage page)
+         ProjectApp.animations.initPosterBlockAnimations();
+     }
 
      // Timeline
-     ProjectApp.timeline.initTimeline();
+     if (ProjectApp.timeline?.initTimeline) {
+         ProjectApp.timeline.initTimeline();
+     }
 
      // Event handlers
-     ProjectApp.eventHandlers.setupSharedListeners();
+     if (ProjectApp.eventHandlers?.setupSharedListeners) {
+         ProjectApp.eventHandlers.setupSharedListeners();
+     }
  };
 
  // ============================================
@@ -8437,52 +8462,85 @@
      ProjectApp.viewSwitcher.cleanupSwitchAnimation();
  };
 
- // ============================================
- // BOOTSTRAP
- // ============================================
- (function() {
-     ProjectApp.__bootDone = false;
+     // ============================================
+     // BOOTSTRAP
+     // ============================================
+     (function() {
+         ProjectApp.__bootDone = false;
 
-     ProjectApp.__isCoreReady = function() {
-         return !!(
-             ProjectApp.swiperModule?.initSwiper &&
-             ProjectApp.listModule?.ensureListInit &&
-             ProjectApp.animations?.initLinkHover
-         );
-     };
+         ProjectApp.__isCoreReady = function() {
+             return !!(
+                 ProjectApp.swiperModule?.initSwiper &&
+                 ProjectApp.listModule?.ensureListInit &&
+                 ProjectApp.animations?.initLinkHover &&
+                 ProjectApp.barbaManager?.init
+             );
+         };
 
-     ProjectApp.bootstrap = function() {
-         if (ProjectApp.__bootDone) return;
-         if (!ProjectApp.__isCoreReady()) {
-             return setTimeout(ProjectApp.bootstrap, 50);
-         }
+         ProjectApp.bootstrap = function() {
+             if (ProjectApp.__bootDone) return;
 
-         try {
-             ProjectApp.initPageFeatures();
-         } catch(e) {
-             console.error('Init error:', e);
-         }
-
-         try {
-             if (ProjectApp.barbaManager?.init) {
-                 ProjectApp.barbaManager.init();
+             if (!ProjectApp.__isCoreReady()) {
+                 return setTimeout(ProjectApp.bootstrap, 50);
              }
-         } catch(e) {
-             console.error('Barba init error:', e);
+
+             try {
+                 // Initialize shared features on first load
+                 ProjectApp.initSharedFeatures();
+
+                 // Initialize page-specific features based on current namespace
+                 const namespace = document.querySelector('[data-barba-namespace]')?.getAttribute('data-barba-namespace');
+
+                 switch(namespace) {
+                     case 'work':
+                         ProjectApp.initWorkPage();
+                         break;
+                     case 'archive':
+                         if (ProjectApp.archivePageModule?.init) {
+                             ProjectApp.archivePageModule.init();
+                         }
+                         break;
+                     case 'about':
+                         if (ProjectApp.pageSpecificModule?.init) {
+                             ProjectApp.pageSpecificModule.init();
+                         }
+                         break;
+                     case 'reportage':
+                         if (ProjectApp.reportageSwiper?.init) {
+                             ProjectApp.reportageSwiper.init();
+                         }
+                         break;
+                     case 'contact':
+                         // Contact page has no specific modules
+                         break;
+                     default:
+                         console.log('Unknown namespace:', namespace);
+                 }
+
+                 // Initialize page animations
+                 if (ProjectApp.pageAnimations?.initAll) {
+                     ProjectApp.pageAnimations.initAll();
+                 }
+
+             } catch(e) {
+                 console.error('Init error:', e);
+             }
+
+             try {
+                 // Initialize Barba after initial page setup
+                 if (ProjectApp.barbaManager?.init) {
+                     ProjectApp.barbaManager.init();
+                 }
+             } catch(e) {
+                 console.error('Barba init error:', e);
+             }
+
+             ProjectApp.__bootDone = true;
+         };
+
+         if (document.readyState === 'loading') {
+             document.addEventListener('DOMContentLoaded', ProjectApp.bootstrap);
+         } else {
+             ProjectApp.bootstrap();
          }
-
-         ProjectApp.__bootDone = true;
-     };
-
-     if (document.readyState === 'loading') {
-         document.addEventListener('DOMContentLoaded', ProjectApp.bootstrap);
-     } else {
-         ProjectApp.bootstrap();
-     }
- })();
-
- document.addEventListener('DOMContentLoaded', function() {
-     if (ProjectApp.pageAnimations?.initAll) {
-         ProjectApp.pageAnimations.initAll();
-     }
- });
+     })();
