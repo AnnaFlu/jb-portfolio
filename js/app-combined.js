@@ -1398,8 +1398,6 @@
 //     return h;
 // };
 
-
-
     ProjectApp.templateManager = (function (prev) {
     const tm = prev || {};
     tm.captureListTemplatesOnce = tm.captureListTemplatesOnce || function () {
@@ -1882,98 +1880,134 @@
     return vis ? ProjectApp.swiperFx.animateOut(vis) : Promise.resolve();
 },
 
-    initSwitchAnimation() {
-    ProjectApp.viewSwitcher.cleanupSwitchAnimation();
-    ProjectApp.state.switchAnim.modeBlock = document.querySelector('.mode-block');
-    ProjectApp.state.switchAnim.filterButtons = Array.from(document.querySelectorAll('.filter-item'));
-    ProjectApp.state.switchAnim.optionBlocks = Array.from(document.querySelectorAll('.option-item'));
+// Add this NEW function to apply video states
+        applyModeState() {
+            const isModeActive = sessionStorage.getItem('modeActive') === 'true';
+            const modeBlock = document.querySelector('.mode-block');
 
-    if (ProjectApp.state.switchAnim.modeBlock) {
-    const onModeClick = () => {
-    ProjectApp.state.switchAnim.modeBlock.classList.toggle('is--active');
-    const isActive = ProjectApp.state.switchAnim.modeBlock.classList.contains('is--active');
+            // Update mode block state
+            if (modeBlock) {
+                if (isModeActive) {
+                    modeBlock.classList.add('is--active');
+                } else {
+                    modeBlock.classList.remove('is--active');
+                }
+            }
 
-    const backgroundVideoBlocks = document.querySelectorAll('.background-video-block');
-    const backgroundBlocks = document.querySelectorAll('.background-block');
+            // Apply to all background blocks on current page
+            const backgroundVideoBlocks = document.querySelectorAll('.background-video-block');
+            const backgroundBlocks = document.querySelectorAll('.background-block');
 
-    if (ProjectApp.state.switchAnim.videoTimeouts) {
-    ProjectApp.state.switchAnim.videoTimeouts.forEach(timeout => clearTimeout(timeout));
-    ProjectApp.state.switchAnim.videoTimeouts = [];
-} else {
-    ProjectApp.state.switchAnim.videoTimeouts = [];
-}
+            [...backgroundVideoBlocks, ...backgroundBlocks].forEach(block => {
+                const video = block.querySelector('video');
 
-    backgroundVideoBlocks.forEach(videoBlock => {
-    videoBlock.classList.toggle('is--on', isActive);
+                if (isModeActive) {
+                    block.classList.add('is--on');
+                    if (video) {
+                        video.setAttribute('autoplay', 'autoplay');
+                        video.play().catch(e => console.log('Video play failed:', e));
+                    }
+                } else {
+                    block.classList.remove('is--on');
+                    if (video) {
+                        video.removeAttribute('autoplay');
+                        video.pause();
+                        video.currentTime = 0;
+                    }
+                }
+            });
 
-    const video = videoBlock.querySelector('video');
-    if (video) {
-    if (isActive) {
-    video.setAttribute('autoplay', 'autoplay');
-    video.play().catch(e => console.log('Video play failed:', e));
-} else {
-    const timeout = setTimeout(() => {
-    video.removeAttribute('autoplay');
-    video.pause();
-    video.currentTime = 0;
-}, 1200);
+            console.log('Applied mode state:', isModeActive ? 'active' : 'inactive');
+        },
 
-    ProjectApp.state.switchAnim.videoTimeouts.push(timeout);
-}
-}
-});
+        initSwitchAnimation() {
+            ProjectApp.viewSwitcher.cleanupSwitchAnimation();
+            ProjectApp.state.switchAnim.modeBlock = document.querySelector('.mode-block');
+            ProjectApp.state.switchAnim.filterButtons = Array.from(document.querySelectorAll('.filter-item'));
+            ProjectApp.state.switchAnim.optionBlocks = Array.from(document.querySelectorAll('.option-item'));
 
-    backgroundBlocks.forEach(block => {
-    block.classList.toggle('is--on', isActive);
+            if (ProjectApp.state.switchAnim.modeBlock) {
+                const onModeClick = () => {
+                    const wasActive = ProjectApp.state.switchAnim.modeBlock.classList.contains('is--active');
+                    const nowActive = !wasActive;
 
-    const video = block.querySelector('video');
-    if (video) {
-    if (isActive) {
-    video.setAttribute('autoplay', 'autoplay');
-    video.play().catch(e => console.log('Video play failed:', e));
-} else {
-    const timeout = setTimeout(() => {
-    video.removeAttribute('autoplay');
-    video.pause();
-    video.currentTime = 0;
-}, 1200);
+                    // Toggle mode block state
+                    ProjectApp.state.switchAnim.modeBlock.classList.toggle('is--active');
 
-    ProjectApp.state.switchAnim.videoTimeouts.push(timeout);
-}
-}
-});
-};
+                    // Save state to sessionStorage so it persists across pages
+                    sessionStorage.setItem('modeActive', nowActive.toString());
 
-    ProjectApp.viewSwitcher.addTrackedListener(ProjectApp.state.switchAnim.modeBlock, 'click', onModeClick);
-}
+                    const backgroundVideoBlocks = document.querySelectorAll('.background-video-block');
+                    const backgroundBlocks = document.querySelectorAll('.background-block');
 
-    ProjectApp.state.switchAnim.filterButtons.forEach((btn) => {
-    const onFilterClick = () => {
-    if (!btn.classList.contains('is--active')) {
-    ProjectApp.state.switchAnim.filterButtons.forEach(b => b.classList.remove('is--active'));
-    btn.classList.add('is--active');
-}
-};
-    ProjectApp.viewSwitcher.addTrackedListener(btn, 'click', onFilterClick);
-});
+                    // Clear existing timeouts
+                    if (ProjectApp.state.switchAnim.videoTimeouts) {
+                        ProjectApp.state.switchAnim.videoTimeouts.forEach(timeout => clearTimeout(timeout));
+                        ProjectApp.state.switchAnim.videoTimeouts = [];
+                    } else {
+                        ProjectApp.state.switchAnim.videoTimeouts = [];
+                    }
 
-    ProjectApp.state.switchAnim.optionBlocks.forEach((opt) => {
-    const onOptionClick = () => {
-    if (!opt.classList.contains('is--active')) {
-    ProjectApp.state.switchAnim.optionBlocks.forEach(b => b.classList.remove('is--active'));
-    opt.classList.add('is--active');
-    if (opt.hasAttribute('data-list')) {
-    ProjectApp.viewSwitcher.switchView('list');
-} else {
-    ProjectApp.viewSwitcher.switchView('swiper');
-}
-}
-};
-    ProjectApp.viewSwitcher.addTrackedListener(opt, 'click', onOptionClick);
-});
+                    // Apply to all background blocks
+                    [...backgroundVideoBlocks, ...backgroundBlocks].forEach(block => {
+                        const video = block.querySelector('video');
 
-    ProjectApp.viewSwitcher.initializeVideoStates();
-},
+                        if (nowActive) {
+                            block.classList.add('is--on');
+                            if (video) {
+                                video.setAttribute('autoplay', 'autoplay');
+                                video.play().catch(e => console.log('Video play failed:', e));
+                            }
+                        } else {
+                            block.classList.remove('is--on');
+                            if (video) {
+                                const timeout = setTimeout(() => {
+                                    video.removeAttribute('autoplay');
+                                    video.pause();
+                                    video.currentTime = 0;
+                                }, 1200);
+                                ProjectApp.state.switchAnim.videoTimeouts.push(timeout);
+                            }
+                        }
+                    });
+                };
+
+                ProjectApp.viewSwitcher.addTrackedListener(ProjectApp.state.switchAnim.modeBlock, 'click', onModeClick);
+            }
+
+            ProjectApp.state.switchAnim.filterButtons.forEach((btn) => {
+                const onFilterClick = () => {
+                    if (!btn.classList.contains('is--active')) {
+                        ProjectApp.state.switchAnim.filterButtons.forEach(b => b.classList.remove('is--active'));
+                        btn.classList.add('is--active');
+                    }
+                };
+                ProjectApp.viewSwitcher.addTrackedListener(btn, 'click', onFilterClick);
+            });
+
+            ProjectApp.state.switchAnim.optionBlocks.forEach((opt) => {
+                const onOptionClick = () => {
+                    if (!opt.classList.contains('is--active')) {
+                        ProjectApp.state.switchAnim.optionBlocks.forEach(b => b.classList.remove('is--active'));
+                        opt.classList.add('is--active');
+                        if (opt.hasAttribute('data-list')) {
+                            ProjectApp.viewSwitcher.switchView('list');
+                        } else {
+                            ProjectApp.viewSwitcher.switchView('swiper');
+                        }
+                    }
+                };
+                ProjectApp.viewSwitcher.addTrackedListener(opt, 'click', onOptionClick);
+            });
+
+            // Apply saved mode state on init
+            ProjectApp.viewSwitcher.applyModeState();
+        },
+
+        initializeVideoStates() {
+            // This now happens in applyModeState
+            ProjectApp.viewSwitcher.applyModeState();
+        },
 
     initializeVideoStates() {
     const backgroundVideoBlocks = document.querySelectorAll('.background-video-block');
@@ -8423,23 +8457,11 @@
 
      // ALL Animations (on every page)
      if (ProjectApp.animations) {
-         // Link hover with shuffle effect
          ProjectApp.animations.initLinkHover();
-
-         // Background image hover (for project items)
          ProjectApp.state.backgroundHoverHandler = ProjectApp.animations.initBackgroundImageHover();
-
-         // Background hover block (magnified image effect)
          ProjectApp.animations.initBackgroundHoverBlock();
-
-         // Guilds animations (shuffle text in guilds section)
          ProjectApp.animations.initGuildsAnimations();
-
-         // Press animations (shuffle text in press section)
          ProjectApp.animations.initPressAnimations();
-
-         // Poster block animations (reportage page)
-         ProjectApp.animations.initPosterBlockAnimations();
      }
 
      // Timeline
@@ -8450,6 +8472,16 @@
      // Event handlers
      if (ProjectApp.eventHandlers?.setupSharedListeners) {
          ProjectApp.eventHandlers.setupSharedListeners();
+     }
+
+     // View switcher (includes mode state)
+     if (ProjectApp.viewSwitcher?.initSwitchAnimation) {
+         ProjectApp.viewSwitcher.initSwitchAnimation();
+     }
+
+     // Apply background video mode state (NEW - call this AFTER initSwitchAnimation)
+     if (ProjectApp.viewSwitcher?.applyModeState) {
+         ProjectApp.viewSwitcher.applyModeState();
      }
  };
 
@@ -8505,8 +8537,8 @@
          }
      }, 200);
 
-     // View switcher (work page specific)
-     ProjectApp.viewSwitcher.initSwitchAnimation();
+     // ❌ REMOVE THIS - now in shared features
+     // ProjectApp.viewSwitcher.initSwitchAnimation();
 
      // Additional work page animations
      ProjectApp.animations.initGuildsAnimations();
