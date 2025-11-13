@@ -907,10 +907,10 @@
 };
     const prevSlide = findByIdx(prevIdx);
     const nextSlide = findByIdx(nextIdx);
-    const prevPreview = activeEl.querySelector('.preview-video.is--prev');
-    const nextPreview = activeEl.querySelector('.preview-video.is--next');
-    const prevImg = prevSlide ? prevSlide.querySelector('.project-video') : null;
-    const nextImg = nextSlide ? nextSlide.querySelector('.project-video') : null;
+    const prevPreview = activeEl.querySelector('.preview-video.is--prev source');
+    const nextPreview = activeEl.querySelector('.preview-video.is--next source');
+    const prevImg = prevSlide ? prevSlide.querySelector('.project-video source') : null;
+    const nextImg = nextSlide ? nextSlide.querySelector('.project-video source') : null;
     if (prevImg && prevPreview) prevPreview.src = prevImg.src || prevImg.getAttribute('src') || '';
     if (nextImg && nextPreview) nextPreview.src = nextImg.src || nextImg.getAttribute('src') || '';
 },
@@ -7525,14 +7525,14 @@
             if (window.innerWidth < 768) return;
 
             let activeIndex = 0;
-            const bgImages = document.querySelectorAll('.background-image');
+            const bgVideos = document.querySelectorAll('.background-image'); // Keep same selector (assuming you renamed the class or these are now video elements)
             let isTransitioning = false;
 
-            if (bgImages.length >= 2) {
-                bgImages[0].style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
-                bgImages[0].style.zIndex = '2';
-                bgImages[1].style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
-                bgImages[1].style.zIndex = '1';
+            if (bgVideos.length >= 2) {
+                bgVideos[0].style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
+                bgVideos[0].style.zIndex = '2';
+                bgVideos[1].style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
+                bgVideos[1].style.zIndex = '1';
             }
 
             function handleProjectHover(projectItem) {
@@ -7541,44 +7541,125 @@
                 const listVideo = projectItem.querySelector('.list-video');
                 if (!listVideo) return;
 
-                const newSrc = listVideo.src || listVideo.getAttribute('src');
+                const sourceElement = listVideo.querySelector('source');
+                if (!sourceElement) return;
+
+                const newSrc = sourceElement.src || sourceElement.getAttribute('src');
                 if (!newSrc) return;
 
-                const currentImage = bgImages[activeIndex];
-                const currentSrc = currentImage.src || currentImage.getAttribute('src');
+// Preload the video
+                if (!incoming.dataset.preloaded || incoming.dataset.preloadedSrc !== newSrc) {
+                    const preloadSource = incoming.querySelector('source');
+                    if (preloadSource) {
+                        preloadSource.src = newSrc;
+                    } else {
+                        incoming.src = newSrc;
+                    }
+                    incoming.load();
+                    incoming.dataset.preloaded = 'true';
+                    incoming.dataset.preloadedSrc = newSrc;
+                }
+
+                const currentVideo = bgVideos[activeIndex];
+
+                // Check if current background is video or has source
+                let currentSrc;
+                if (currentVideo.tagName === 'VIDEO') {
+                    const currentSource = currentVideo.querySelector('source');
+                    currentSrc = currentSource ? (currentSource.src || currentSource.getAttribute('src')) : currentVideo.src;
+                } else {
+                    currentSrc = currentVideo.src || currentVideo.getAttribute('src');
+                }
+
                 if (newSrc === currentSrc) return;
 
                 isTransitioning = true;
                 const nextIndex = activeIndex === 0 ? 1 : 0;
-                const incoming = bgImages[nextIndex];
-                const current = bgImages[activeIndex];
+                const incoming = bgVideos[nextIndex];
+                const current = bgVideos[activeIndex];
 
                 incoming.style.transition = 'none';
                 incoming.style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
                 incoming.style.zIndex = '5';
-                incoming.src = newSrc;
 
-                const transitionImages = () => {
-                    requestAnimationFrame(() => {
-                        incoming.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1)';
-                        incoming.style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
-                        current.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1) 600ms';
-                        current.style.clipPath = 'polygon(0% 50%, 100% 50%, 100% 50%, 0% 50%)';
-                        current.style.zIndex = '4';
+                // Handle video element
+                if (incoming.tagName === 'VIDEO') {
+                    const incomingSource = incoming.querySelector('source');
+                    if (incomingSource) {
+                        incomingSource.src = newSrc;
+                    } else {
+                        incoming.src = newSrc;
+                    }
 
+                    // Reload video with new source
+                    incoming.load();
+
+                    // Wait for video to be ready
+                    const transitionVideos = () => {
+                        requestAnimationFrame(() => {
+                            // Play the incoming video
+                            incoming.play().catch(e => console.log('Background video play failed:', e));
+
+                            incoming.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1)';
+                            incoming.style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+                            current.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1) 600ms';
+                            current.style.clipPath = 'polygon(0% 50%, 100% 50%, 100% 50%, 0% 50%)';
+                            current.style.zIndex = '4';
+
+                            setTimeout(() => {
+                                incoming.style.zIndex = '3';
+                                current.style.zIndex = '2';
+                                activeIndex = nextIndex;
+                                isTransitioning = false;
+
+                                // Pause the previous video
+                                if (current.tagName === 'VIDEO') {
+                                    current.pause();
+                                    current.currentTime = 0;
+                                }
+                            }, 600);
+                        });
+                    };
+
+                    // Check if video is ready
+                    if (incoming.readyState >= 3) { // HAVE_FUTURE_DATA or greater
+                        transitionVideos();
+                    } else {
+                        incoming.addEventListener('canplay', transitionVideos, { once: true });
+
+                        // Fallback timeout in case video doesn't load
                         setTimeout(() => {
-                            incoming.style.zIndex = '3';
-                            current.style.zIndex = '2';
-                            activeIndex = nextIndex;
-                            isTransitioning = false;
-                        }, 600);
-                    });
-                };
-
-                if (incoming.complete && incoming.naturalWidth !== 0) {
-                    transitionImages();
+                            if (isTransitioning) {
+                                transitionVideos();
+                            }
+                        }, 500);
+                    }
                 } else {
-                    incoming.onload = transitionImages;
+                    // Fallback for image (in case you still have images)
+                    incoming.src = newSrc;
+
+                    const transitionImages = () => {
+                        requestAnimationFrame(() => {
+                            incoming.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1)';
+                            incoming.style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+                            current.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1) 600ms';
+                            current.style.clipPath = 'polygon(0% 50%, 100% 50%, 100% 50%, 0% 50%)';
+                            current.style.zIndex = '4';
+
+                            setTimeout(() => {
+                                incoming.style.zIndex = '3';
+                                current.style.zIndex = '2';
+                                activeIndex = nextIndex;
+                                isTransitioning = false;
+                            }, 600);
+                        });
+                    };
+
+                    if (incoming.complete && incoming.naturalWidth !== 0) {
+                        transitionImages();
+                    } else {
+                        incoming.onload = transitionImages;
+                    }
                 }
             }
 
