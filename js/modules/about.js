@@ -1,4 +1,3 @@
-<script>
     ProjectApp = window.ProjectApp || {};
     ProjectApp.pageSpecificModule = {
     state: {
@@ -1455,7 +1454,7 @@
 },
 
 
-    
+
     destinations: {
     init() {
     if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
@@ -2342,4 +2341,3 @@
     };
 
 };
-</script>

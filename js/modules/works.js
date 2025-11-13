@@ -1,4 +1,3 @@
-<script>
     window.ProjectApp = window.ProjectApp || {};
 
     (function () {
@@ -360,6 +359,13 @@
         ProjectApp.animations.addHoverAnimationToSwiperSlides =
         ProjectApp.animations.addHoverAnimationToSwiperSlides || function(){};
     })();
+
+
+
+
+
+
+
 
         ProjectApp.swiperModule = {
         swipers: {},
@@ -1920,4 +1926,3 @@
         await animateInNextView(next);
     };
     })();
-    </script>

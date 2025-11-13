@@ -1,5 +1,3 @@
-<script>
-    ProjectApp = window.ProjectApp || {};
     ProjectApp.archivePageModule = {
     config: {
     VIDEO_LOAD_DELAY: 800,
@@ -1406,4 +1404,3 @@
     this.state.archiveMarqueeInitialized = false;
 }
 };
-</script>

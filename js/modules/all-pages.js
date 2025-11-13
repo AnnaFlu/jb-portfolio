@@ -1,4 +1,3 @@
-<script>
     // UTILITY FUNCTIONS
     ProjectApp.utils = {
     norm(str) {
@@ -212,4 +211,3 @@
     ProjectApp.pageAnimations.initCreatorHover();
 }
 };
-</script>

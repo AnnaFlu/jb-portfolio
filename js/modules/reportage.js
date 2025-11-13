@@ -1,5 +1,4 @@
-<script>
-    ProjectApp.reportageSwiper = {
+ProjectApp.reportageSwiper = {
     swiperMove: null,
     swiperFade: null,
 
@@ -1010,4 +1009,3 @@
     return { move: swiperMoveInstance, fade: swiperFadeInstance };
 }
 };
-</script>
