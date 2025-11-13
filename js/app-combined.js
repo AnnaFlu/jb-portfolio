@@ -8616,7 +8616,17 @@
  // ============================================
  // PRELOADER
  // ============================================
+ // ============================================
+ // PRELOADER (Only Once Per Session)
+ // ============================================
  (function() {
+     // Early exit if no preloader on page
+     const preloader = document.querySelector('.preloader');
+     if (!preloader) {
+         console.log('No preloader on this page - skipping');
+         return;
+     }
+
      // Check if preloader has already been shown in this session
      const preloaderShown = sessionStorage.getItem('preloaderShown');
 
@@ -8626,10 +8636,7 @@
              console.log('Preloader already shown this session - skipping');
 
              // Hide preloader immediately
-             const preloader = document.querySelector('.preloader');
-             if (preloader) {
-                 preloader.style.display = 'none';
-             }
+             preloader.style.display = 'none';
 
              // Show navbar and footer immediately
              const navbar = document.querySelector('.navbar');
@@ -8645,7 +8652,7 @@
              const activeSlide = document.querySelector('.swiper-slide-active');
              const logicalPrevSlide = document.querySelector('.swiper-slide.is--prev-logical');
 
-             if (activeSlide) {
+             if (activeSlide && ProjectApp.slidePresets?.resetSlideElements) {
                  ProjectApp.slidePresets.resetSlideElements(activeSlide);
              }
              if (logicalPrevSlide) {
@@ -8653,10 +8660,10 @@
              }
          });
 
-         return; // Exit early - don't run preloader
+         return;
      }
 
-     // First time visiting - run preloader and mark as shown
+     // First time visiting - run preloader
      document.addEventListener('DOMContentLoaded', function() {
          console.log('First visit - running preloader');
 
@@ -8708,7 +8715,6 @@
          const firstText = document.querySelector('.preloader-text-inner .preloader-text');
          const leftImageBlock = document.querySelector('.preloader-image-block.is--left');
          const rightImageBlock = document.querySelector('.preloader-image-block.is--right');
-         const preloader = document.querySelector('.preloader');
          const navbar = document.querySelector('.navbar');
          const footer = document.querySelector('.footer');
 
@@ -8879,7 +8885,6 @@
 
              timeline.to(preloader, { opacity: '0', duration: 0 }, 'odometerStart+=4.6');
          }
-
          timeline.set('.blocked-block', { pointerEvents: 'none' }, 'odometerStart+=5.5');
 
          function animateOdometer() {
