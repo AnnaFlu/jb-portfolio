@@ -48,6 +48,7 @@
      CustomEase.create("headingHoverEase", "0.75, 0, 0.25, 1");
      CustomEase.create("transitionEase", "0.75, 0, 0, 1");
     }
+
     // ============================================
     // UTILITIES
     // ============================================
@@ -165,6 +166,122 @@
 });
 }
 };
+
+ // TIMELINE MODULE
+ ProjectApp.timeline = {
+     initTimeline() {
+         ProjectApp.timeline.cleanupTimeline();
+
+         const blocks = Array.from(document.querySelectorAll('.timeline-block'));
+         if (!blocks.length) return;
+
+         function fmt(totalMs) {
+             const m = Math.floor(totalMs / 60000);
+             const s = Math.floor((totalMs % 60000) / 1000);
+             const ms = Math.floor((totalMs % 1000) / 10);
+             return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}:${String(ms).padStart(2, '0')}`;
+         }
+
+         blocks.forEach(block => {
+             const el = block.querySelector('.text-mono');
+             if (!el) return;
+
+             const timer = {
+                 element: el,
+                 milliseconds: 0,
+                 intervalId: null,
+                 start() {
+                     if (this.intervalId) return;
+                     this.intervalId = setInterval(() => {
+                         this.element.textContent = fmt(this.milliseconds);
+                         this.milliseconds += 10;
+                     }, 10);
+                 },
+                 stop() {
+                     if (this.intervalId) {
+                         clearInterval(this.intervalId);
+                         this.intervalId = null;
+                     }
+                 }
+             };
+
+             el.textContent = fmt(0);
+             timer.start();
+             ProjectApp.state.timelineState.timers.push(timer);
+         });
+
+         const onVis = () => {
+             ProjectApp.state.timelineState.timers.forEach(t => {
+                 if (document.hidden) {
+                     t.stop();
+                 } else {
+                     t.start();
+                 }
+             });
+         };
+
+         document.addEventListener('visibilitychange', onVis);
+         ProjectApp.state.timelineState.visibilityHandler = onVis;
+     },
+
+     cleanupTimeline() {
+         ProjectApp.state.timelineState.timers.forEach(t => {
+             try { t.stop(); } catch(e) {}
+         });
+         ProjectApp.state.timelineState.timers = [];
+
+         if (ProjectApp.state.timelineState.visibilityHandler) {
+             try {
+                 document.removeEventListener('visibilitychange', ProjectApp.state.timelineState.visibilityHandler);
+             } catch(e) {}
+             ProjectApp.state.timelineState.visibilityHandler = null;
+         }
+     }
+ };
+
+ // CREDITS HOVER
+ ProjectApp.pageAnimations = {
+     initCreatorHover() {
+         const creatorBlock = document.querySelector('.creator-block');
+         const creatorLinks = document.querySelectorAll('.creator-link');
+
+         if (!creatorBlock || !creatorLinks.length) return;
+
+         const oldBlock = creatorBlock.cloneNode(true);
+         creatorBlock.parentNode.replaceChild(oldBlock, creatorBlock);
+
+         let hoverTimeout;
+
+         oldBlock.addEventListener('mouseenter', () => {
+             clearTimeout(hoverTimeout);
+             hoverTimeout = setTimeout(() => {
+                 const links = oldBlock.querySelectorAll('.creator-link');
+                 links.forEach((link, index) => {
+                     const reverseIndex = links.length - 1 - index;
+                     setTimeout(() => {
+                         link.classList.remove('animate-out');
+                         link.classList.add('animate-in');
+                     }, reverseIndex * 80);
+                 });
+             }, 150);
+         });
+
+         oldBlock.addEventListener('mouseleave', () => {
+             clearTimeout(hoverTimeout);
+             const links = oldBlock.querySelectorAll('.creator-link');
+             links.forEach((link, index) => {
+                 setTimeout(() => {
+                     link.classList.remove('animate-in');
+                     link.classList.add('animate-out');
+                 }, index * 80);
+             });
+         });
+     },
+
+     initAll() {
+         ProjectApp.pageAnimations.initCreatorHover();
+     }
+ };
 
     // ============================================
     // SWIPER ANIMATIONS
@@ -460,9 +577,9 @@
 };
 })();
 
-    ProjectApp.state = ProjectApp.state || {};
-    ProjectApp.animations = ProjectApp.animations || {};
-    ProjectApp.utils = ProjectApp.utils || {};
+    // ProjectApp.state = ProjectApp.state || {};
+    // ProjectApp.animations = ProjectApp.animations || {};
+    // ProjectApp.utils = ProjectApp.utils || {};
 
     (function(){
     const hasGSAP = ()=> typeof window.gsap !== 'undefined';
@@ -519,9 +636,7 @@
 }
 };
 
-    ProjectApp.slidePresets = ProjectApp.slidePresets || {
-
-};
+    ProjectApp.slidePresets = ProjectApp.slidePresets || {};
 
     ProjectApp.animations.addHoverAnimationToSwiperSlides =
     ProjectApp.animations.addHoverAnimationToSwiperSlides || function(){};
@@ -1229,59 +1344,59 @@
 }
 };
 
-    if(window.ProjectApp && ProjectApp.bootstrap) ProjectApp.bootstrap();
+    //if(window.ProjectApp && ProjectApp.bootstrap) ProjectApp.bootstrap();
 
 
     // ============================================
     // SWITCH PAGE MODULE
     // ============================================
-    window.ProjectApp = window.ProjectApp || {};
-    ProjectApp.state = ProjectApp.state || {};
-    ProjectApp.animations = ProjectApp.animations || {};
-    ProjectApp.utils = ProjectApp.utils || {};
+    // window.ProjectApp = window.ProjectApp || {};
+    // ProjectApp.state = ProjectApp.state || {};
+    // ProjectApp.animations = ProjectApp.animations || {};
+    // ProjectApp.utils = ProjectApp.utils || {};
 
-    const HIDE_DELAY_MS = 100;
+//    const HIDE_DELAY_MS = 100;
 
-    if (ProjectApp.state.currentView == null) ProjectApp.state.currentView = 'list';
-    if (ProjectApp.state.currentCategory == null) ProjectApp.state.currentCategory = 'all';
-    if (!ProjectApp.state.switchAnim) ProjectApp.state.switchAnim = {listeners: []};
-
-    ProjectApp.utils.norm = ProjectApp.utils.norm || function (s) {
-    return String(s || '').toLowerCase().trim();
-};
-    ProjectApp.utils.withTemporarilyShown = ProjectApp.utils.withTemporarilyShown || function (el, fn) {
-    if (!el) return fn && fn();
-    const wasNone = getComputedStyle(el).display === 'none' || el.classList.contains('is--hidden');
-    const prev = { display: el.style.display, visibility: el.style.visibility, pointerEvents: el.style.pointerEvents };
-    if (wasNone) {
-    el.classList.remove('is--hidden');
-    el.style.display = 'block';
-    el.style.visibility = 'hidden';
-    el.style.pointerEvents = 'none';
-}
-    try { return fn && fn(); } finally {
-    if (wasNone) {
-    el.style.display = prev.display || '';
-    el.style.visibility = prev.visibility || '';
-    el.style.pointerEvents = prev.pointerEvents || '';
-    el.classList.add('is--hidden');
-}
-}
-};
-    ProjectApp.utils.measureItemHeight = ProjectApp.utils.measureItemHeight || function(templates, listEl){
-    const tmp = document.createElement('div');
-    tmp.style.position = 'absolute';
-    tmp.style.left = '-99999px';
-    tmp.style.top = '0';
-    tmp.style.width = (listEl && listEl.clientWidth ? listEl.clientWidth : 1000) + 'px';
-    document.body.appendChild(tmp);
-    const first = templates && templates[0] ? templates[0].cloneNode(true) : null;
-    if (!first){ document.body.removeChild(tmp); return 120; }
-    tmp.appendChild(first);
-    const h = Math.max(1, first.offsetHeight || 0);
-    document.body.removeChild(tmp);
-    return h;
-};
+//     if (ProjectApp.state.currentView == null) ProjectApp.state.currentView = 'list';
+//     if (ProjectApp.state.currentCategory == null) ProjectApp.state.currentCategory = 'all';
+//     if (!ProjectApp.state.switchAnim) ProjectApp.state.switchAnim = {listeners: []};
+//
+//     ProjectApp.utils.norm = ProjectApp.utils.norm || function (s) {
+//     return String(s || '').toLowerCase().trim();
+// };
+//     ProjectApp.utils.withTemporarilyShown = ProjectApp.utils.withTemporarilyShown || function (el, fn) {
+//     if (!el) return fn && fn();
+//     const wasNone = getComputedStyle(el).display === 'none' || el.classList.contains('is--hidden');
+//     const prev = { display: el.style.display, visibility: el.style.visibility, pointerEvents: el.style.pointerEvents };
+//     if (wasNone) {
+//     el.classList.remove('is--hidden');
+//     el.style.display = 'block';
+//     el.style.visibility = 'hidden';
+//     el.style.pointerEvents = 'none';
+// }
+//     try { return fn && fn(); } finally {
+//     if (wasNone) {
+//     el.style.display = prev.display || '';
+//     el.style.visibility = prev.visibility || '';
+//     el.style.pointerEvents = prev.pointerEvents || '';
+//     el.classList.add('is--hidden');
+// }
+// }
+// };
+//     ProjectApp.utils.measureItemHeight = ProjectApp.utils.measureItemHeight || function(templates, listEl){
+//     const tmp = document.createElement('div');
+//     tmp.style.position = 'absolute';
+//     tmp.style.left = '-99999px';
+//     tmp.style.top = '0';
+//     tmp.style.width = (listEl && listEl.clientWidth ? listEl.clientWidth : 1000) + 'px';
+//     document.body.appendChild(tmp);
+//     const first = templates && templates[0] ? templates[0].cloneNode(true) : null;
+//     if (!first){ document.body.removeChild(tmp); return 120; }
+//     tmp.appendChild(first);
+//     const h = Math.max(1, first.offsetHeight || 0);
+//     document.body.removeChild(tmp);
+//     return h;
+// };
 
 
 
@@ -1897,9 +2012,9 @@
 }
 };
 
-    window.ProjectApp = window.ProjectApp || {};
-    ProjectApp.state = ProjectApp.state || {};
-    ProjectApp.filterModule = ProjectApp.filterModule || {};
+    // window.ProjectApp = window.ProjectApp || {};
+    // ProjectApp.state = ProjectApp.state || {};
+    // ProjectApp.filterModule = ProjectApp.filterModule || {};
     ProjectApp.debug = (ProjectApp.debug !== undefined) ? ProjectApp.debug : true;
 
     (function () {
@@ -7006,76 +7121,6 @@
             });
         },
 
-        initBackgroundImageHover() {
-            if (window.innerWidth < 768) return;
-
-            let activeIndex = 0;
-            const bgImages = document.querySelectorAll('.background-image');
-            let isTransitioning = false;
-
-            if (bgImages.length >= 2) {
-                bgImages[0].style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
-                bgImages[0].style.zIndex = '2';
-                bgImages[1].style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
-                bgImages[1].style.zIndex = '1';
-            }
-
-            function handleProjectHover(projectItem) {
-                if (isTransitioning) return;
-
-                const listVideo = projectItem.querySelector('.list-video');
-                if (!listVideo) return;
-
-                const newSrc = listVideo.src || listVideo.getAttribute('src');
-                if (!newSrc) return;
-
-                const currentImage = bgImages[activeIndex];
-                const currentSrc = currentImage.src || currentImage.getAttribute('src');
-                if (newSrc === currentSrc) return;
-
-                isTransitioning = true;
-                const nextIndex = activeIndex === 0 ? 1 : 0;
-                const incoming = bgImages[nextIndex];
-                const current = bgImages[activeIndex];
-
-                incoming.style.transition = 'none';
-                incoming.style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
-                incoming.style.zIndex = '5';
-                incoming.src = newSrc;
-
-                const transitionImages = () => {
-                    requestAnimationFrame(() => {
-                        incoming.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1)';
-                        incoming.style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
-                        current.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1) 600ms';
-                        current.style.clipPath = 'polygon(0% 50%, 100% 50%, 100% 50%, 0% 50%)';
-                        current.style.zIndex = '4';
-
-                        setTimeout(() => {
-                            incoming.style.zIndex = '3';
-                            current.style.zIndex = '2';
-                            activeIndex = nextIndex;
-                            isTransitioning = false;
-                        }, 600);
-                    });
-                };
-
-                if (incoming.complete && incoming.naturalWidth !== 0) {
-                    transitionImages();
-                } else {
-                    incoming.onload = transitionImages;
-                }
-            }
-
-            document.querySelectorAll('.project-item').forEach(item => {
-                item.addEventListener('mouseenter', function() {
-                    handleProjectHover(this);
-                });
-            });
-
-            return handleProjectHover;
-        },
-
         initAlternatingShuffleForElement(element) {
             const isInSwiper = element.closest('.swiper-slide');
             const isInProject = element.closest('.project-item');
@@ -7369,6 +7414,76 @@
                 posterBlock.dataset.posterAnimationsInitialized = 'true';
                 ProjectApp.animations.addHoverAnimationToPosterBlock(posterBlock);
             });
+        },
+
+        initBackgroundImageHover() {
+            if (window.innerWidth < 768) return;
+
+            let activeIndex = 0;
+            const bgImages = document.querySelectorAll('.background-image');
+            let isTransitioning = false;
+
+            if (bgImages.length >= 2) {
+                bgImages[0].style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
+                bgImages[0].style.zIndex = '2';
+                bgImages[1].style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
+                bgImages[1].style.zIndex = '1';
+            }
+
+            function handleProjectHover(projectItem) {
+                if (isTransitioning) return;
+
+                const listVideo = projectItem.querySelector('.list-video');
+                if (!listVideo) return;
+
+                const newSrc = listVideo.src || listVideo.getAttribute('src');
+                if (!newSrc) return;
+
+                const currentImage = bgImages[activeIndex];
+                const currentSrc = currentImage.src || currentImage.getAttribute('src');
+                if (newSrc === currentSrc) return;
+
+                isTransitioning = true;
+                const nextIndex = activeIndex === 0 ? 1 : 0;
+                const incoming = bgImages[nextIndex];
+                const current = bgImages[activeIndex];
+
+                incoming.style.transition = 'none';
+                incoming.style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
+                incoming.style.zIndex = '5';
+                incoming.src = newSrc;
+
+                const transitionImages = () => {
+                    requestAnimationFrame(() => {
+                        incoming.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1)';
+                        incoming.style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+                        current.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1) 600ms';
+                        current.style.clipPath = 'polygon(0% 50%, 100% 50%, 100% 50%, 0% 50%)';
+                        current.style.zIndex = '4';
+
+                        setTimeout(() => {
+                            incoming.style.zIndex = '3';
+                            current.style.zIndex = '2';
+                            activeIndex = nextIndex;
+                            isTransitioning = false;
+                        }, 600);
+                    });
+                };
+
+                if (incoming.complete && incoming.naturalWidth !== 0) {
+                    transitionImages();
+                } else {
+                    incoming.onload = transitionImages;
+                }
+            }
+
+            document.querySelectorAll('.project-item').forEach(item => {
+                item.addEventListener('mouseenter', function() {
+                    handleProjectHover(this);
+                });
+            });
+
+            return handleProjectHover;
         },
 
         initBackgroundHoverBlock() {
@@ -7669,475 +7784,705 @@
     // ============================================
     // BARBA MANAGER
     // ============================================
-    ProjectApp.barbaManager = {
-    setBlockAlignments(blocks) {
-    blocks.forEach((block, index) => {
-    if (ProjectApp.state.blockAlignmentState === 'initial') {
-    block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
-} else {
-    block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
-}
-});
-},
-
-    swapBlockAlignments(blocks) {
-    ProjectApp.state.blockAlignmentState =
-    ProjectApp.state.blockAlignmentState === 'initial' ? 'swapped' : 'initial';
-
-    blocks.forEach((block, index) => {
-    if (ProjectApp.state.blockAlignmentState === 'initial') {
-    block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
-} else {
-    block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
-}
-});
-},
-
-    prepareTransitionBlocks() {
-    const blocks = document.querySelectorAll('.transition-block');
-    blocks.forEach((block) => {
-    gsap.set(block, {clearProps: 'height'});
-});
-    ProjectApp.barbaManager.setBlockAlignments(blocks);
-},
-
-    updateActiveLinkByHref(href) {
-    try {
-    const url = new URL(href, window.location.origin);
-    const links = Array.from(document.querySelectorAll('.nav-link-block'));
-    links.forEach(a => a.classList.remove('is--active'));
-
-    const pqh = url.pathname + url.search + url.hash;
-    let target = document.querySelector(`.nav-link-block[href="${pqh}"]`) ||
-    document.querySelector(`.nav-link-block[href="${url.pathname}"]`);
-
-    if (!target) {
-    target = links.find(a => {
-    try {
-    const aURL = new URL(a.getAttribute('href'), window.location.origin);
-    return aURL.pathname === url.pathname;
-} catch(e) {
-    return false;
-}
-});
-}
-
-    if (target) target.classList.add('is--active');
-} catch(e) {}
-},
-
-    init() {
-    if (!window.barba || !window.barba.init) {
-    return;
-}
-
-    if (window.barbaPrefetch && typeof barbaPrefetch !== 'undefined' && barba.use) {
-    barba.use(barbaPrefetch);
-}
-
-    barba.init({
-    preventRunning: true,
-    prefetch: !!window.barbaPrefetch,
-
-    views: [
-{
-    namespace: 'archive',
-    beforeEnter() {
-    console.log('Entering archive page');
-},
-    afterEnter() {
-    if (ProjectApp.archivePageModule?.init) {
-    ProjectApp.archivePageModule.init();
-}
-},
-    beforeLeave() {
-    if (ProjectApp.archivePageModule?.cleanup) {
-    ProjectApp.archivePageModule.cleanup();
-}
-}
-},
-{
-    namespace: 'about',
-    afterEnter() {
-    if (ProjectApp.pageSpecificModule?.init) {
-    ProjectApp.pageSpecificModule.init();
-}
-},
-    beforeLeave() {
-    if (ProjectApp.pageSpecificModule?.cleanup) {
-    ProjectApp.pageSpecificModule.cleanup();
-}
-}
-}
-    ],
-
-    transitions: [{
-    name: 'default-transition',
-
-    async leave(data) {
-    ProjectApp.state.isTransitioning = true;
-
-    // Cleanup ALL modules
-    const cleanupModules = [
-    ProjectApp.listModule,
-    ProjectApp.pageSpecificModule,
-    ProjectApp.archivePageModule,
-    ProjectApp.reportageSwiper
-    ];
-
-    cleanupModules.forEach(module => {
-    if (module?.cleanup) module.cleanup();
-});
-
-    Object.values(ProjectApp.swiperModule.swipers || {}).forEach(swiper => {
-    try {
-    if (swiper.mousewheel?.disable) swiper.mousewheel.disable();
-    swiper.allowTouchMove = false;
-    if (swiper.detachEvents) swiper.detachEvents();
-} catch(e) {}
-});
-
-    ProjectApp.eventHandlers.cleanupSharedListeners();
-    ProjectApp.viewSwitcher.cleanupSwitchAnimation();
-    ProjectApp.animations.cleanupLinkHover();
-    ProjectApp.timeline.cleanupTimeline();
-
-    // Pause all videos
-    document.querySelectorAll('video').forEach(v => v.pause());
-
-    if (data?.trigger?.tagName) {
-    const href = data.trigger.getAttribute?.('href');
-    if (href && !href.startsWith('#') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
-    try {
-    ProjectApp.barbaManager.updateActiveLinkByHref(new URL(href, window.location.origin).href);
-} catch(e) {}
-}
-}
-
-    const blocks = document.querySelectorAll('.transition-block');
-    ProjectApp.barbaManager.setBlockAlignments(blocks);
-
-    const done = this.async();
-
-    gsap.timeline({
-    onComplete: () => {
-    ProjectApp.barbaManager.swapBlockAlignments(blocks);
-    done();
-}
-})
-    .fromTo(blocks,
-{height: '0%'},
-{height: '100%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
-    );
-},
-
-    async enter(data) {
-    const next = data.next.container;
-
-    // Wait for images
-    await ProjectApp.utils.waitForImages(next);
-
-    // Prepare videos (lazy load)
-    ProjectApp.utils.prepareVideos(next);
-
-    ProjectApp.barbaManager.prepareTransitionBlocks();
-    const blocks = document.querySelectorAll('.transition-block');
-
-    const done = this.async();
-
-    gsap.timeline({
-    onComplete: () => {
-    ProjectApp.barbaManager.swapBlockAlignments(blocks);
-    ProjectApp.state.isTransitioning = false;
-
-    // Initialize immediately
-    ProjectApp.initPageFeatures();
-    if (ProjectApp.pageAnimations?.initAll) {
-    ProjectApp.pageAnimations.initAll();
-}
-
-    done();
-}
-})
-    .fromTo(blocks,
-{height: '100%'},
-{height: '0%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
-    );
-},
-
-    async once(data) {
-    const container = data.next.container || data.current.container || document;
-    await ProjectApp.utils.waitForImages(container);
-
-    try {
-    ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
-} catch(e) {}
-
-    const transitionBlocks = document.querySelectorAll('.transition-block');
-    ProjectApp.barbaManager.setBlockAlignments(transitionBlocks);
-}
-}]
-});
-
-    if (barba.hooks?.after) {
-    barba.hooks.after(() => {
-    ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
-});
-}
-}
-};
-
-    // ============================================
-    // MAIN INIT
-    // ============================================
-    ProjectApp.initPageFeatures = function() {
-    if (ProjectApp.textStyling?.init) {
-    ProjectApp.textStyling.init();
-}
-
-    // Check current page/view and init appropriate module
-    const currentPath = window.location.pathname;
-    const namespace = document.querySelector('[data-barba-namespace]')?.getAttribute('data-barba-namespace');
-
-    // General features
-    ProjectApp.state.backgroundHoverHandler = ProjectApp.animations.initBackgroundImageHover();
-
-    const activeOption = document.querySelector('.option-item.is--active');
-    let desired = 'swiper';
-
-    if (activeOption) {
-    if (activeOption.hasAttribute('data-list')) desired = 'list';
-    if (activeOption.hasAttribute('data-swiper')) desired = 'swiper';
-} else {
-    const projectCollection = document.querySelector('.project-collection');
-    if (projectCollection && !ProjectApp.utils.isElementActuallyHidden(projectCollection)) {
-    desired = 'list';
-}
-}
-
-    if (desired === 'swiper') {
-    ProjectApp.state.currentView = 'swiper';
-    const projectCollection = document.querySelector('.project-collection');
-    const swipersContainer = document.querySelector('.swipers-container');
-
-    if (swipersContainer) swipersContainer.classList.remove('is--hidden');
-    if (projectCollection) projectCollection.classList.add('is--hidden');
-
-    if (ProjectApp.swiperModule?.initAll) {
-    ProjectApp.swiperModule.initAll();
-}
-} else {
-    ProjectApp.state.currentView = 'list';
-    const swipersContainer = document.querySelector('.swipers-container');
-    const projectCollection = document.querySelector('.project-collection');
-
-    if (projectCollection) projectCollection.classList.remove('is--hidden');
-    if (swipersContainer) swipersContainer.classList.add('is--hidden');
-
-    if (ProjectApp.listModule?.ensureListInit) {
-    ProjectApp.listModule.ensureListInit();
-}
-}
-
-    setTimeout(() => {
-    if (ProjectApp.filterModule?.initializeTotalCounts) {
-    ProjectApp.state.countsInitialized = false;
-    ProjectApp.filterModule.initializeTotalCounts();
-    ProjectApp.filterModule.updateCurrentTotalCount();
-}
-}, 200);
-
-    // Always init these
-    ProjectApp.eventHandlers.setupSharedListeners();
-    ProjectApp.viewSwitcher.initSwitchAnimation();
-    ProjectApp.animations.initLinkHover();
-    ProjectApp.animations.initBackgroundHoverBlock();
-    ProjectApp.animations.initGuildsAnimations();
-    ProjectApp.animations.initPressAnimations();
-    ProjectApp.timeline.initTimeline();
-
-    // Reportage swiper (if exists and not already initialized)
-    if (ProjectApp.reportageSwiper &&
-    !ProjectApp.reportageSwiper.swiperMove &&
-    !ProjectApp.reportageSwiper.swiperFade) {
-    const hasReportage = document.querySelector('.swiper.reportage-move') &&
-    document.querySelector('.swiper.reportage-fade');
-    if (hasReportage) {
-    ProjectApp.reportageSwiper.init();
-}
-}
-};
-
-    // ============================================
-    // BOOTSTRAP
-    // ============================================
-    (function() {
-    ProjectApp.__bootDone = false;
-
-    ProjectApp.__isCoreReady = function() {
-    return !!(
-    ProjectApp.swiperModule?.initSwiper &&
-    ProjectApp.listModule?.ensureListInit &&
-    ProjectApp.animations?.initLinkHover &&
-    ProjectApp.viewSwitcher?.initSwitchAnimation
-    );
-};
-
-    ProjectApp.bootstrap = function() {
-    if (ProjectApp.__bootDone) return;
-
-    if (!ProjectApp.__isCoreReady()) {
-    return setTimeout(ProjectApp.bootstrap, 50);
-}
-
-    try {
-    ProjectApp.initPageFeatures();
-} catch(e) {
-    console.error('Init error:', e);
-}
-
-    try {
-    if (ProjectApp.barbaManager?.init) {
-    ProjectApp.barbaManager.init();
-}
-} catch(e) {
-    console.error('Barba init error:', e);
-}
-
-    ProjectApp.__bootDone = true;
-};
-
-    if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', ProjectApp.bootstrap);
-} else {
-    ProjectApp.bootstrap();
-}
-})();
-
-    document.addEventListener('DOMContentLoaded', function() {
-        ProjectApp.pageAnimations.initAll();
-
-        (function () {
-            const logoWrapper = document.querySelector('.nav-logo-wrapper');
-            if (!logoWrapper) return;
-            const dots = logoWrapper.querySelectorAll('.text-dot');
-            const texts = logoWrapper.querySelectorAll('.text-small');
-            gsap.set(dots, { opacity: 0, scale: 0.5 });
-            gsap.set(texts, { opacity: 0.6 });
-            let loopTimeline = null;
-
-            function createLoopAnimation() {
-                loopTimeline = gsap.timeline({ repeat: -1, repeatDelay: 0.5 });
-                dots.forEach((dot, index) => {
-                    const text = texts[index];
-                    const startTime = index * 2;
-
-                    loopTimeline.to(dot,   { opacity: 1, scale: 1, duration: 0.1, ease: 'mainEase' }, startTime);
-                    loopTimeline.to(text,  { opacity: 1,              duration: 0.1, ease: 'mainEase' }, startTime);
-                    loopTimeline.to(dot,   { opacity: 0, scale: 0.5,  duration: 0.1, ease: 'mainEase' }, startTime + 0.55);
-                    loopTimeline.to(text,  { opacity: 0.6,            duration: 0.1, ease: 'mainEase' }, startTime + 0.55);
-                    loopTimeline.to(dot,   { opacity: 1, scale: 1,    duration: 0.1, ease: 'mainEase' }, startTime + 0.9);
-                    loopTimeline.to(text,  { opacity: 1,              duration: 0.1, ease: 'mainEase' }, startTime + 0.9);
-                    loopTimeline.to(dot,   { opacity: 0, scale: 0.5,  duration: 0.1, ease: 'mainEase' }, startTime + 1.45);
-                    loopTimeline.to(text,  { opacity: 0.6,            duration: 0.1, ease: 'mainEase' }, startTime + 1.45);
-                });
-            }
-
-            logoWrapper.addEventListener('mouseenter', () => {
-                if (!loopTimeline) createLoopAnimation();
-            });
-            logoWrapper.addEventListener('mouseleave', () => {
-                if (loopTimeline) {
-                    loopTimeline.kill();
-                    loopTimeline = null;
-                }
-                gsap.to(dots,  { opacity: 0, scale: 0, duration: 0.3, ease: 'mainEase' });
-                gsap.to(texts, { opacity: 0.6,          duration: 0.3, ease: 'mainEase' });
-            });
-        })();
-
-        (function () {
-            const leftDecor = document.querySelector('.decor-numbers.is--left');
-            const rightDecor = document.querySelector('.decor-numbers.is--right');
-            if (!leftDecor || !rightDecor) return;
-
-            const leftInner = leftDecor.querySelector('.decor-inner');
-            const rightInner = rightDecor.querySelector('.decor-inner');
-            if (!leftInner || !rightInner) return;
-
-            const leftTexts = Array.from(leftInner.querySelectorAll('.text-decor'));
-            const rightTexts = Array.from(rightInner.querySelectorAll('.text-decor'));
-            if (leftTexts.length === 0 || rightTexts.length === 0) return;
-
-            for (let i = 0; i < 4; i++) {
-                leftTexts.forEach(text => leftInner.appendChild(text.cloneNode(true)));
-                rightTexts.forEach(text => rightInner.appendChild(text.cloneNode(true)));
-            }
-
-            const leftHeight = leftTexts.reduce((sum, text) => sum + text.offsetHeight, 0);
-            const rightHeight = rightTexts.reduce((sum, text) => sum + text.offsetHeight, 0);
-
-            let leftOffset = 0;
-            let rightOffset = 0;
-            let wheelDelta = 0;
-
-            window.addEventListener('wheel', (e) => { wheelDelta += e.deltaY; }, { passive: true });
-
-            function animate() {
-                leftOffset  += wheelDelta * 0.02;
-                rightOffset -= wheelDelta * 0.02;
-                wheelDelta  *= 0.85;
-
-                if (leftOffset  >=  leftHeight) leftOffset  -= leftHeight;
-                if (leftOffset  <= -leftHeight) leftOffset  += leftHeight;
-                if (rightOffset >=  rightHeight) rightOffset -= rightHeight;
-                if (rightOffset <= -rightHeight) rightOffset += rightHeight;
-
-                leftInner.style.transform  = `translateY(${leftOffset}px)`;
-                rightInner.style.transform = `translateY(${rightOffset}px)`;
-
-                requestAnimationFrame(animate);
-            }
-            animate();
-        })();
-    });
-
-    // GLOBAL CLICK HANDLERS
-    document.addEventListener('click', function(e) {
-
-        const navLink = e.target.closest('.nav-link-block');
-        if (navLink) {
-            const href = navLink.getAttribute('href');
-            if (!href) return;
-            if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
-
-            try {
-                const url = new URL(href, window.location.origin);
-                if (url.origin === window.location.origin) {
-                    ProjectApp.barbaManager.updateActiveLinkByHref(url.href);
-                }
-            } catch(err) {
-                return;
-            }
-        }
-    });
-
-    // WEBFLOW BADGE REMOVER
-    let deleteCount = 0;
-    const observer = new MutationObserver(() => {
-        const body = document.body;
-        const lastChild = body.lastElementChild;
-
-        if (lastChild && lastChild.matches('a.w-webflow-badge')) {
-            lastChild.remove();
-            deleteCount++;
-
-            if (deleteCount === 2) {
-                observer.disconnect();
-            }
-        }
-    });
-
-    observer.observe(document.body, {
-        childList: true,
-    });
+//     ProjectApp.barbaManager = {
+//     setBlockAlignments(blocks) {
+//     blocks.forEach((block, index) => {
+//     if (ProjectApp.state.blockAlignmentState === 'initial') {
+//     block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
+// } else {
+//     block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
+// }
+// });
+// },
+//
+//     swapBlockAlignments(blocks) {
+//     ProjectApp.state.blockAlignmentState =
+//     ProjectApp.state.blockAlignmentState === 'initial' ? 'swapped' : 'initial';
+//
+//     blocks.forEach((block, index) => {
+//     if (ProjectApp.state.blockAlignmentState === 'initial') {
+//     block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
+// } else {
+//     block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
+// }
+// });
+// },
+//
+//     prepareTransitionBlocks() {
+//     const blocks = document.querySelectorAll('.transition-block');
+//     blocks.forEach((block) => {
+//     gsap.set(block, {clearProps: 'height'});
+// });
+//     ProjectApp.barbaManager.setBlockAlignments(blocks);
+// },
+//
+//     updateActiveLinkByHref(href) {
+//     try {
+//     const url = new URL(href, window.location.origin);
+//     const links = Array.from(document.querySelectorAll('.nav-link-block'));
+//     links.forEach(a => a.classList.remove('is--active'));
+//
+//     const pqh = url.pathname + url.search + url.hash;
+//     let target = document.querySelector(`.nav-link-block[href="${pqh}"]`) ||
+//     document.querySelector(`.nav-link-block[href="${url.pathname}"]`);
+//
+//     if (!target) {
+//     target = links.find(a => {
+//     try {
+//     const aURL = new URL(a.getAttribute('href'), window.location.origin);
+//     return aURL.pathname === url.pathname;
+// } catch(e) {
+//     return false;
+// }
+// });
+// }
+//
+//     if (target) target.classList.add('is--active');
+// } catch(e) {}
+// },
+//
+//     init() {
+//     if (!window.barba || !window.barba.init) {
+//     return;
+// }
+//
+//     if (window.barbaPrefetch && typeof barbaPrefetch !== 'undefined' && barba.use) {
+//     barba.use(barbaPrefetch);
+// }
+//
+//     barba.init({
+//     preventRunning: true,
+//     prefetch: !!window.barbaPrefetch,
+//
+//     views: [
+// {
+//     namespace: 'archive',
+//     beforeEnter() {
+//     console.log('Entering archive page');
+// },
+//     afterEnter() {
+//     if (ProjectApp.archivePageModule?.init) {
+//     ProjectApp.archivePageModule.init();
+// }
+// },
+//     beforeLeave() {
+//     if (ProjectApp.archivePageModule?.cleanup) {
+//     ProjectApp.archivePageModule.cleanup();
+// }
+// }
+// },
+// {
+//     namespace: 'about',
+//     afterEnter() {
+//     if (ProjectApp.pageSpecificModule?.init) {
+//     ProjectApp.pageSpecificModule.init();
+// }
+// },
+//     beforeLeave() {
+//     if (ProjectApp.pageSpecificModule?.cleanup) {
+//     ProjectApp.pageSpecificModule.cleanup();
+// }
+// }
+// }
+//     ],
+//
+//     transitions: [{
+//     name: 'default-transition',
+//
+//     async leave(data) {
+//     ProjectApp.state.isTransitioning = true;
+//
+//     // Cleanup ALL modules
+//     const cleanupModules = [
+//     ProjectApp.listModule,
+//     ProjectApp.pageSpecificModule,
+//     ProjectApp.archivePageModule,
+//     ProjectApp.reportageSwiper
+//     ];
+//
+//     cleanupModules.forEach(module => {
+//     if (module?.cleanup) module.cleanup();
+// });
+//
+//     Object.values(ProjectApp.swiperModule.swipers || {}).forEach(swiper => {
+//     try {
+//     if (swiper.mousewheel?.disable) swiper.mousewheel.disable();
+//     swiper.allowTouchMove = false;
+//     if (swiper.detachEvents) swiper.detachEvents();
+// } catch(e) {}
+// });
+//
+//     ProjectApp.eventHandlers.cleanupSharedListeners();
+//     ProjectApp.viewSwitcher.cleanupSwitchAnimation();
+//     ProjectApp.animations.cleanupLinkHover();
+//     ProjectApp.timeline.cleanupTimeline();
+//
+//     // Pause all videos
+//     document.querySelectorAll('video').forEach(v => v.pause());
+//
+//     if (data?.trigger?.tagName) {
+//     const href = data.trigger.getAttribute?.('href');
+//     if (href && !href.startsWith('#') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
+//     try {
+//     ProjectApp.barbaManager.updateActiveLinkByHref(new URL(href, window.location.origin).href);
+// } catch(e) {}
+// }
+// }
+//
+//     const blocks = document.querySelectorAll('.transition-block');
+//     ProjectApp.barbaManager.setBlockAlignments(blocks);
+//
+//     const done = this.async();
+//
+//     gsap.timeline({
+//     onComplete: () => {
+//     ProjectApp.barbaManager.swapBlockAlignments(blocks);
+//     done();
+// }
+// })
+//     .fromTo(blocks,
+// {height: '0%'},
+// {height: '100%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
+//     );
+// },
+//
+//     async enter(data) {
+//     const next = data.next.container;
+//
+//     // Wait for images
+//     await ProjectApp.utils.waitForImages(next);
+//
+//     // Prepare videos (lazy load)
+//     ProjectApp.utils.prepareVideos(next);
+//
+//     ProjectApp.barbaManager.prepareTransitionBlocks();
+//     const blocks = document.querySelectorAll('.transition-block');
+//
+//     const done = this.async();
+//
+//     gsap.timeline({
+//     onComplete: () => {
+//     ProjectApp.barbaManager.swapBlockAlignments(blocks);
+//     ProjectApp.state.isTransitioning = false;
+//
+//     // Initialize immediately
+//     ProjectApp.initPageFeatures();
+//     if (ProjectApp.pageAnimations?.initAll) {
+//     ProjectApp.pageAnimations.initAll();
+// }
+//
+//     done();
+// }
+// })
+//     .fromTo(blocks,
+// {height: '100%'},
+// {height: '0%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
+//     );
+// },
+//
+//     async once(data) {
+//     const container = data.next.container || data.current.container || document;
+//     await ProjectApp.utils.waitForImages(container);
+//
+//     try {
+//     ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
+// } catch(e) {}
+//
+//     const transitionBlocks = document.querySelectorAll('.transition-block');
+//     ProjectApp.barbaManager.setBlockAlignments(transitionBlocks);
+// }
+// }]
+// });
+//
+//     if (barba.hooks?.after) {
+//     barba.hooks.after(() => {
+//     ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
+// });
+// }
+// }
+// };
+//
+//     // ============================================
+//     // MAIN INIT
+//     // ============================================
+//     ProjectApp.initPageFeatures = function() {
+//     if (ProjectApp.textStyling?.init) {
+//     ProjectApp.textStyling.init();
+// }
+//
+//     // Check current page/view and init appropriate module
+//     const currentPath = window.location.pathname;
+//     const namespace = document.querySelector('[data-barba-namespace]')?.getAttribute('data-barba-namespace');
+//
+//     // General features
+//     ProjectApp.state.backgroundHoverHandler = ProjectApp.animations.initBackgroundImageHover();
+//
+//     const activeOption = document.querySelector('.option-item.is--active');
+//     let desired = 'swiper';
+//
+//     if (activeOption) {
+//     if (activeOption.hasAttribute('data-list')) desired = 'list';
+//     if (activeOption.hasAttribute('data-swiper')) desired = 'swiper';
+// } else {
+//     const projectCollection = document.querySelector('.project-collection');
+//     if (projectCollection && !ProjectApp.utils.isElementActuallyHidden(projectCollection)) {
+//     desired = 'list';
+// }
+// }
+//
+//     if (desired === 'swiper') {
+//     ProjectApp.state.currentView = 'swiper';
+//     const projectCollection = document.querySelector('.project-collection');
+//     const swipersContainer = document.querySelector('.swipers-container');
+//
+//     if (swipersContainer) swipersContainer.classList.remove('is--hidden');
+//     if (projectCollection) projectCollection.classList.add('is--hidden');
+//
+//     if (ProjectApp.swiperModule?.initAll) {
+//     ProjectApp.swiperModule.initAll();
+// }
+// } else {
+//     ProjectApp.state.currentView = 'list';
+//     const swipersContainer = document.querySelector('.swipers-container');
+//     const projectCollection = document.querySelector('.project-collection');
+//
+//     if (projectCollection) projectCollection.classList.remove('is--hidden');
+//     if (swipersContainer) swipersContainer.classList.add('is--hidden');
+//
+//     if (ProjectApp.listModule?.ensureListInit) {
+//     ProjectApp.listModule.ensureListInit();
+// }
+// }
+//
+//     setTimeout(() => {
+//     if (ProjectApp.filterModule?.initializeTotalCounts) {
+//     ProjectApp.state.countsInitialized = false;
+//     ProjectApp.filterModule.initializeTotalCounts();
+//     ProjectApp.filterModule.updateCurrentTotalCount();
+// }
+// }, 200);
+//
+//     // Always init these
+//     ProjectApp.eventHandlers.setupSharedListeners();
+//     ProjectApp.viewSwitcher.initSwitchAnimation();
+//     ProjectApp.animations.initLinkHover();
+//     ProjectApp.animations.initBackgroundHoverBlock();
+//     ProjectApp.animations.initGuildsAnimations();
+//     ProjectApp.animations.initPressAnimations();
+//     ProjectApp.timeline.initTimeline();
+//
+//     // Reportage swiper (if exists and not already initialized)
+//     if (ProjectApp.reportageSwiper &&
+//     !ProjectApp.reportageSwiper.swiperMove &&
+//     !ProjectApp.reportageSwiper.swiperFade) {
+//     const hasReportage = document.querySelector('.swiper.reportage-move') &&
+//     document.querySelector('.swiper.reportage-fade');
+//     if (hasReportage) {
+//     ProjectApp.reportageSwiper.init();
+// }
+// }
+// };
+
+ // ============================================
+ // BARBA MANAGER
+ // ============================================
+ ProjectApp.barbaManager = {
+     setBlockAlignments(blocks) {
+         blocks.forEach((block, index) => {
+             if (ProjectApp.state.blockAlignmentState === 'initial') {
+                 block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
+             } else {
+                 block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
+             }
+         });
+     },
+
+     swapBlockAlignments(blocks) {
+         ProjectApp.state.blockAlignmentState =
+             ProjectApp.state.blockAlignmentState === 'initial' ? 'swapped' : 'initial';
+
+         blocks.forEach((block, index) => {
+             if (ProjectApp.state.blockAlignmentState === 'initial') {
+                 block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
+             } else {
+                 block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
+             }
+         });
+     },
+
+     prepareTransitionBlocks() {
+         const blocks = document.querySelectorAll('.transition-block');
+         blocks.forEach((block) => {
+             gsap.set(block, {clearProps: 'height'});
+         });
+         ProjectApp.barbaManager.setBlockAlignments(blocks);
+     },
+
+     updateActiveLinkByHref(href) {
+         try {
+             const url = new URL(href, window.location.origin);
+             const links = Array.from(document.querySelectorAll('.nav-link-block'));
+             links.forEach(a => a.classList.remove('is--active'));
+
+             const pqh = url.pathname + url.search + url.hash;
+             let target = document.querySelector(`.nav-link-block[href="${pqh}"]`) ||
+                 document.querySelector(`.nav-link-block[href="${url.pathname}"]`);
+
+             if (!target) {
+                 target = links.find(a => {
+                     try {
+                         const aURL = new URL(a.getAttribute('href'), window.location.origin);
+                         return aURL.pathname === url.pathname;
+                     } catch(e) {
+                         return false;
+                     }
+                 });
+             }
+
+             if (target) target.classList.add('is--active');
+         } catch(e) {}
+     },
+
+     init() {
+         if (!window.barba || !window.barba.init) {
+             return;
+         }
+
+         if (window.barbaPrefetch && typeof barbaPrefetch !== 'undefined' && barba.use) {
+             barba.use(barbaPrefetch);
+         }
+
+         barba.init({
+             preventRunning: true,
+             prefetch: !!window.barbaPrefetch,
+
+             views: [
+                 {
+                     namespace: 'work',
+                     afterEnter() {
+                         console.log('Entering work page');
+                         ProjectApp.initWorkPage();
+                     },
+                     beforeLeave() {
+                         ProjectApp.cleanupWorkPage();
+                     }
+                 },
+                 {
+                     namespace: 'archive',
+                     afterEnter() {
+                         console.log('Entering archive page');
+                         if (ProjectApp.archivePageModule?.init) {
+                             ProjectApp.archivePageModule.init();
+                         }
+                     },
+                     beforeLeave() {
+                         if (ProjectApp.archivePageModule?.cleanup) {
+                             ProjectApp.archivePageModule.cleanup();
+                         }
+                     }
+                 },
+                 {
+                     namespace: 'about',
+                     afterEnter() {
+                         console.log('Entering about page');
+                         if (ProjectApp.pageSpecificModule?.init) {
+                             ProjectApp.pageSpecificModule.init();
+                         }
+                     },
+                     beforeLeave() {
+                         if (ProjectApp.pageSpecificModule?.cleanup) {
+                             ProjectApp.pageSpecificModule.cleanup();
+                         }
+                     }
+                 },
+                 {
+                     namespace: 'reportage',
+                     afterEnter() {
+                         console.log('Entering reportage page');
+                         if (ProjectApp.reportageSwiper?.init) {
+                             ProjectApp.reportageSwiper.init();
+                         }
+                     },
+                     beforeLeave() {
+                         if (ProjectApp.reportageSwiper?.cleanup) {
+                             ProjectApp.reportageSwiper.cleanup();
+                         }
+                     }
+                 },
+                 {
+                     namespace: 'contact',
+                     afterEnter() {
+                         console.log('Entering contact page');
+                     }
+                 }
+             ],
+
+             transitions: [{
+                 name: 'default-transition',
+
+                 async leave(data) {
+                     ProjectApp.state.isTransitioning = true;
+
+                     // Cleanup ALL modules
+                     const cleanupModules = [
+                         ProjectApp.listModule,
+                         ProjectApp.swiperModule,
+                         ProjectApp.pageSpecificModule,
+                         ProjectApp.archivePageModule,
+                         ProjectApp.reportageSwiper
+                     ];
+
+                     cleanupModules.forEach(module => {
+                         if (module?.cleanup) module.cleanup();
+                     });
+
+                     // Cleanup swipers specifically
+                     Object.values(ProjectApp.swiperModule.swipers || {}).forEach(swiper => {
+                         try {
+                             if (swiper.mousewheel?.disable) swiper.mousewheel.disable();
+                             swiper.allowTouchMove = false;
+                             if (swiper.detachEvents) swiper.detachEvents();
+                         } catch(e) {}
+                     });
+
+                     // Cleanup shared listeners
+                     ProjectApp.eventHandlers.cleanupSharedListeners();
+                     ProjectApp.viewSwitcher.cleanupSwitchAnimation();
+                     ProjectApp.animations.cleanupLinkHover();
+                     ProjectApp.timeline.cleanupTimeline();
+
+                     // Pause all videos
+                     document.querySelectorAll('video').forEach(v => v.pause());
+
+                     // Update active nav link
+                     if (data?.trigger?.tagName) {
+                         const href = data.trigger.getAttribute?.('href');
+                         if (href && !href.startsWith('#') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
+                             try {
+                                 ProjectApp.barbaManager.updateActiveLinkByHref(new URL(href, window.location.origin).href);
+                             } catch(e) {}
+                         }
+                     }
+
+                     const blocks = document.querySelectorAll('.transition-block');
+                     ProjectApp.barbaManager.setBlockAlignments(blocks);
+
+                     const done = this.async();
+
+                     gsap.timeline({
+                         onComplete: () => {
+                             ProjectApp.barbaManager.swapBlockAlignments(blocks);
+                             done();
+                         }
+                     })
+                         .fromTo(blocks,
+                             {height: '0%'},
+                             {height: '100%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
+                         );
+                 },
+
+                 async enter(data) {
+                     const next = data.next.container;
+
+                     // Wait for images
+                     await ProjectApp.utils.waitForImages(next);
+
+                     // Prepare videos (lazy load)
+                     ProjectApp.utils.prepareVideos(next);
+
+                     ProjectApp.barbaManager.prepareTransitionBlocks();
+                     const blocks = document.querySelectorAll('.transition-block');
+
+                     const done = this.async();
+
+                     gsap.timeline({
+                         onComplete: () => {
+                             ProjectApp.barbaManager.swapBlockAlignments(blocks);
+                             ProjectApp.state.isTransitioning = false;
+
+                             // Initialize shared features for all pages
+                             ProjectApp.initSharedFeatures();
+
+                             // Page animations
+                             if (ProjectApp.pageAnimations?.initAll) {
+                                 ProjectApp.pageAnimations.initAll();
+                             }
+
+                             done();
+                         }
+                     })
+                         .fromTo(blocks,
+                             {height: '100%'},
+                             {height: '0%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
+                         );
+                 },
+
+                 async once(data) {
+                     const container = data.next.container || data.current.container || document;
+                     await ProjectApp.utils.waitForImages(container);
+
+                     try {
+                         ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
+                     } catch(e) {}
+
+                     const transitionBlocks = document.querySelectorAll('.transition-block');
+                     ProjectApp.barbaManager.setBlockAlignments(transitionBlocks);
+                 }
+             }]
+         });
+
+         if (barba.hooks?.after) {
+             barba.hooks.after(() => {
+                 ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
+             });
+         }
+     }
+ };
+
+ // ============================================
+ // SHARED FEATURES (Run on Every Page)
+ // ============================================
+ ProjectApp.initSharedFeatures = function() {
+     // Text styling
+     if (ProjectApp.textStyling?.init) {
+         ProjectApp.textStyling.init();
+     }
+
+     // Shared animations (on every page)
+     ProjectApp.animations.initLinkHover();
+     ProjectApp.animations.initBackgroundImageHover();
+     ProjectApp.animations.initBackgroundHoverBlock();
+
+     // Timeline
+     ProjectApp.timeline.initTimeline();
+
+     // Event handlers
+     ProjectApp.eventHandlers.setupSharedListeners();
+ };
+
+ // ============================================
+ // WORK PAGE SPECIFIC INIT
+ // ============================================
+ ProjectApp.initWorkPage = function() {
+     console.log('Initializing work page features');
+
+     const activeOption = document.querySelector('.option-item.is--active');
+     let desired = 'swiper';
+
+     if (activeOption) {
+         if (activeOption.hasAttribute('data-list')) desired = 'list';
+         if (activeOption.hasAttribute('data-swiper')) desired = 'swiper';
+     } else {
+         const projectCollection = document.querySelector('.project-collection');
+         if (projectCollection && !ProjectApp.utils.isElementActuallyHidden(projectCollection)) {
+             desired = 'list';
+         }
+     }
+
+     if (desired === 'swiper') {
+         ProjectApp.state.currentView = 'swiper';
+         const projectCollection = document.querySelector('.project-collection');
+         const swipersContainer = document.querySelector('.swipers-container');
+
+         if (swipersContainer) swipersContainer.classList.remove('is--hidden');
+         if (projectCollection) projectCollection.classList.add('is--hidden');
+
+         if (ProjectApp.swiperModule?.initAll) {
+             ProjectApp.swiperModule.initAll();
+         }
+     } else {
+         ProjectApp.state.currentView = 'list';
+         const swipersContainer = document.querySelector('.swipers-container');
+         const projectCollection = document.querySelector('.project-collection');
+
+         if (projectCollection) projectCollection.classList.remove('is--hidden');
+         if (swipersContainer) swipersContainer.classList.add('is--hidden');
+
+         if (ProjectApp.listModule?.ensureListInit) {
+             ProjectApp.listModule.ensureListInit();
+         }
+     }
+
+     // Initialize filter counts
+     setTimeout(() => {
+         if (ProjectApp.filterModule?.initializeTotalCounts) {
+             ProjectApp.state.countsInitialized = false;
+             ProjectApp.filterModule.initializeTotalCounts();
+             ProjectApp.filterModule.updateCurrentTotalCount();
+         }
+     }, 200);
+
+     // View switcher (work page specific)
+     ProjectApp.viewSwitcher.initSwitchAnimation();
+
+     // Additional work page animations
+     ProjectApp.animations.initGuildsAnimations();
+     ProjectApp.animations.initPressAnimations();
+ };
+
+ // ============================================
+ // WORK PAGE CLEANUP
+ // ============================================
+ ProjectApp.cleanupWorkPage = function() {
+     console.log('Cleaning up work page');
+
+     if (ProjectApp.listModule?.cleanupInfiniteScroll) {
+         ProjectApp.listModule.cleanupInfiniteScroll();
+     }
+
+     if (ProjectApp.swiperModule?.cleanup) {
+         ProjectApp.swiperModule.cleanup();
+     }
+
+     ProjectApp.viewSwitcher.cleanupSwitchAnimation();
+ };
+
+ // ============================================
+ // BOOTSTRAP
+ // ============================================
+ (function() {
+     ProjectApp.__bootDone = false;
+
+     ProjectApp.__isCoreReady = function() {
+         return !!(
+             ProjectApp.swiperModule?.initSwiper &&
+             ProjectApp.listModule?.ensureListInit &&
+             ProjectApp.animations?.initLinkHover
+         );
+     };
+
+     ProjectApp.bootstrap = function() {
+         if (ProjectApp.__bootDone) return;
+         if (!ProjectApp.__isCoreReady()) {
+             return setTimeout(ProjectApp.bootstrap, 50);
+         }
+
+         try {
+             ProjectApp.initPageFeatures();
+         } catch(e) {
+             console.error('Init error:', e);
+         }
+
+         try {
+             if (ProjectApp.barbaManager?.init) {
+                 ProjectApp.barbaManager.init();
+             }
+         } catch(e) {
+             console.error('Barba init error:', e);
+         }
+
+         ProjectApp.__bootDone = true;
+     };
+
+     if (document.readyState === 'loading') {
+         document.addEventListener('DOMContentLoaded', ProjectApp.bootstrap);
+     } else {
+         ProjectApp.bootstrap();
+     }
+ })();
+
+ document.addEventListener('DOMContentLoaded', function() {
+     if (ProjectApp.pageAnimations?.initAll) {
+         ProjectApp.pageAnimations.initAll();
+     }
+ });
