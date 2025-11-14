@@ -6748,7 +6748,714 @@
         }
     };
 
-    // ANIMATIONS
+    // ANIMATION MODULE
+    ProjectApp.animations = {
+        initLinkHover() {
+            ProjectApp.animations.cleanupLinkHover();
+            const navLinks = Array.from(document.querySelectorAll('[data-shuffle]'))
+                .filter(el =>
+                    !el.closest('.swiper-slide') &&
+                    !el.closest('.project-item') &&
+                    !el.closest('.press-hover')
+                );
+            navLinks.forEach((link) => {
+                ProjectApp.animations.initShuffleHover(link);
+            });
+        },
+
+        initShuffleHover(element) {
+            if (element.closest('.swiper-slide') || element.closest('.project-item') || element.closest('.guilds-image-wrapper') || element.closest('.press-hover')) return;
+
+            const innerEl = element.querySelector('[data-inner]');
+            const targetEl = innerEl || element;
+            const originalText = targetEl.textContent;
+
+            if (getComputedStyle(targetEl).position === 'static') {
+                targetEl.style.position = 'relative';
+            }
+
+            const split = new SplitType(targetEl, {types: 'chars'});
+            const originalChars = split.chars;
+            const duplicateChars = [];
+
+            originalChars.forEach((char, index) => {
+                char.style.position = 'relative';
+                const dup = char.cloneNode(true);
+                dup.style.position = 'absolute';
+
+                const cr = char.getBoundingClientRect();
+                const lr = targetEl.getBoundingClientRect();
+
+                dup.style.left = (cr.left - lr.left) + 'px';
+                dup.style.top = (cr.top - lr.top) + 'px';
+
+                const cs = getComputedStyle(char);
+                dup.style.width = cr.width + 'px';
+                dup.style.height = cr.height + 'px';
+                dup.style.fontSize = cs.fontSize;
+                dup.style.fontWeight = cs.fontWeight;
+                dup.style.lineHeight = cs.lineHeight;
+                dup.style.letterSpacing = cs.letterSpacing;
+                dup.style.textTransform = cs.textTransform;
+                dup.style.fontFamily = cs.fontFamily;
+                dup.style.margin = '0';
+                dup.style.padding = '0';
+                dup.style.zIndex = '1';
+                char.style.zIndex = '2';
+
+                const fromBottom = index % 2 === 0;
+                gsap.set(dup, {yPercent: fromBottom ? 100 : -100});
+
+                targetEl.appendChild(dup);
+                duplicateChars.push(dup);
+            });
+
+            let resizeTO;
+            const onResize = () => {
+                clearTimeout(resizeTO);
+                resizeTO = setTimeout(() => {
+                    const lr = targetEl.getBoundingClientRect();
+                    originalChars.forEach((char, i) => {
+                        const cr = char.getBoundingClientRect();
+                        const dup = duplicateChars[i];
+                        dup.style.left = (cr.left - lr.left) + 'px';
+                        dup.style.top = (cr.top - lr.top) + 'px';
+                        dup.style.width = cr.width + 'px';
+                        dup.style.height = cr.height + 'px';
+                    });
+                }, 100);
+            };
+            window.addEventListener('resize', onResize);
+
+            let tl = null;
+            const onEnter = () => {
+                if (tl) tl.kill();
+
+                const lr = targetEl.getBoundingClientRect();
+                originalChars.forEach((char, i) => {
+                    const cr = char.getBoundingClientRect();
+                    const dup = duplicateChars[i];
+                    dup.style.left = (cr.left - lr.left) + 'px';
+                    dup.style.top = (cr.top - lr.top) + 'px';
+                });
+
+                tl = gsap.timeline();
+                originalChars.forEach((char, i) => {
+                    const fromBottom = i % 2 === 0;
+                    tl.to(char, {
+                        yPercent: fromBottom ? -100 : 100,
+                        duration: 0.5,
+                        ease: 'power3.inOut'
+                    }, 0);
+                    tl.to(duplicateChars[i], {
+                        yPercent: 0,
+                        duration: 0.5,
+                        ease: 'power3.inOut'
+                    }, 0);
+                });
+            };
+
+            const onLeave = () => {
+                if (tl) tl.kill();
+
+                tl = gsap.timeline();
+                originalChars.forEach((char, i) => {
+                    const fromBottom = i % 2 === 0;
+                    tl.to(char, {
+                        yPercent: 0,
+                        duration: 0.5,
+                        ease: 'power3.inOut'
+                    }, 0);
+                    tl.to(duplicateChars[i], {
+                        yPercent: fromBottom ? 100 : -100,
+                        duration: 0.5,
+                        ease: 'power3.inOut'
+                    }, 0);
+                });
+            };
+
+            element.addEventListener('mouseenter', onEnter);
+            element.addEventListener('mouseleave', onLeave);
+
+            ProjectApp.state.linkHoverState.items.push({
+                link: element,
+                split,
+                originalText,
+                originalChars,
+                duplicateChars,
+                onEnter,
+                onLeave,
+                onResize
+            });
+        },
+
+        initBackgroundImageHover() {
+            if (window.innerWidth < 768) return;
+
+            let activeIndex = 0;
+            const bgImages = document.querySelectorAll('.background-image');
+            let isTransitioning = false;
+
+            if (bgImages.length >= 2) {
+                bgImages[0].style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
+                bgImages[0].style.zIndex = '2';
+                bgImages[1].style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
+                bgImages[1].style.zIndex = '1';
+            }
+
+            function handleProjectHover(projectItem) {
+                if (isTransitioning) return;
+
+                const listVideo = projectItem.querySelector('.list-video');
+                if (!listVideo) return;
+
+                const newSrc = listVideo.src || listVideo.getAttribute('src');
+                if (!newSrc) return;
+
+                const currentImage = bgImages[activeIndex];
+                const currentSrc = currentImage.src || currentImage.getAttribute('src');
+                if (newSrc === currentSrc) return;
+
+                isTransitioning = true;
+                const nextIndex = activeIndex === 0 ? 1 : 0;
+                const incoming = bgImages[nextIndex];
+                const current = bgImages[activeIndex];
+
+                incoming.style.transition = 'none';
+                incoming.style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
+                incoming.style.zIndex = '5';
+                incoming.src = newSrc;
+
+                const transitionImages = () => {
+                    requestAnimationFrame(() => {
+                        incoming.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1)';
+                        incoming.style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+                        current.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1) 600ms';
+                        current.style.clipPath = 'polygon(0% 50%, 100% 50%, 100% 50%, 0% 50%)';
+                        current.style.zIndex = '4';
+
+                        setTimeout(() => {
+                            incoming.style.zIndex = '3';
+                            current.style.zIndex = '2';
+                            activeIndex = nextIndex;
+                            isTransitioning = false;
+                        }, 600);
+                    });
+                };
+
+                if (incoming.complete && incoming.naturalWidth !== 0) {
+                    transitionImages();
+                } else {
+                    incoming.onload = transitionImages;
+                }
+            }
+
+            document.querySelectorAll('.project-item').forEach(item => {
+                item.addEventListener('mouseenter', function() {
+                    handleProjectHover(this);
+                });
+            });
+
+            return handleProjectHover;
+        },
+
+        initAlternatingShuffleForElement(element) {
+            const isInSwiper = element.closest('.swiper-slide');
+            const isInProject = element.closest('.project-item');
+            const isInGuilds = element.closest('.guilds-image-wrapper');
+            const isInPress = element.closest('.press-hover');
+
+            if (!isInSwiper && !isInProject && !isInGuilds && !isInPress) return;
+
+            if (element.dataset.shuffleInitialized === 'true') return;
+
+            const innerEl = element.querySelector('[data-inner]');
+            const targetEl = innerEl || element;
+
+            const existingSpans = targetEl.querySelectorAll('span > span');
+            if (existingSpans.length > 0) {
+                element.dataset.shuffleInitialized = 'true';
+                return;
+            }
+
+            const text = targetEl.textContent;
+            if (!text || text.trim() === '') return;
+
+            element.dataset.shuffleInitialized = 'true';
+            targetEl.textContent = '';
+            targetEl.style.position = 'relative';
+            targetEl.style.display = 'inline-block';
+            targetEl.style.overflow = 'hidden';
+
+            const chars = text.split('');
+            const charElements = [];
+
+            chars.forEach((char, index) => {
+                const charWrap = document.createElement('span');
+                charWrap.style.position = 'relative';
+                charWrap.style.display = 'inline-block';
+                charWrap.style.overflow = 'hidden';
+                charWrap.style.verticalAlign = 'top';
+
+                const charInner = document.createElement('span');
+                charInner.style.display = 'block';
+                charInner.textContent = char;
+
+                const fromTop = index % 2 === 0;
+                charInner.style.transform = fromTop ? 'translateY(-100%)' : 'translateY(100%)';
+
+                charWrap.appendChild(charInner);
+                targetEl.appendChild(charWrap);
+                charElements.push({inner: charInner, fromTop});
+            });
+
+            let isInside = false;
+
+            element.addEventListener('mouseenter', function() {
+                if (isInside) return;
+                isInside = true;
+                charElements.forEach(({inner}) => {
+                    inner.style.transition = 'transform 0.5s cubic-bezier(0.65, 0, 0.35, 1)';
+                    requestAnimationFrame(() => {
+                        inner.style.transform = 'translateY(0)';
+                    });
+                });
+            }, true);
+
+            element.addEventListener('mouseleave', function() {
+                if (!isInside) return;
+                isInside = false;
+                charElements.forEach(({inner, fromTop}) => {
+                    inner.style.transition = 'transform 0.5s cubic-bezier(0.65, 0, 0.35, 1)';
+                    inner.style.transform = fromTop ? 'translateY(-100%)' : 'translateY(100%)';
+                });
+            }, true);
+        },
+
+        addHoverAnimationToSwiperSlides(swiper) {
+            if (!swiper || !swiper.slides || !Array.isArray(swiper.slides)) return;
+
+            const slides = swiper.slides;
+            slides.forEach(slide => {
+                if (slide.classList.contains('swiper-slide-duplicate')) return;
+                if (slide.dataset.animationsInitialized === 'true') return;
+
+                slide.dataset.animationsInitialized = 'true';
+
+                const wrappers = slide.querySelectorAll('.video-hover-wrapper');
+                wrappers.forEach(wrap => {
+                    const inner = wrap.querySelector('.video-hover-inner');
+                    if (!inner) return;
+
+                    if (getComputedStyle(wrap).position === 'static') {
+                        wrap.style.position = 'relative';
+                    }
+
+                    inner.style.position = 'absolute';
+                    inner.style.left = '50%';
+                    inner.style.top = '50%';
+                    inner.style.transform = 'translate(-50%, -50%)';
+                    inner.style.pointerEvents = 'none';
+
+                    let isHovering = false;
+
+                    wrap.addEventListener('mouseenter', function(e) {
+                        isHovering = true;
+                        const r = wrap.getBoundingClientRect();
+                        const x = e.clientX - r.left;
+                        const y = e.clientY - r.top;
+                        inner.style.transform = `translate(calc(-50% + ${x - r.width/2}px), calc(-50% + ${y - r.height/2}px))`;
+                    });
+
+                    wrap.addEventListener('mousemove', function(e) {
+                        if (!isHovering) return;
+                        const r = wrap.getBoundingClientRect();
+                        const x = e.clientX - r.left;
+                        const y = e.clientY - r.top;
+                        inner.style.transform = `translate(calc(-50% + ${x - r.width/2}px), calc(-50% + ${y - r.height/2}px))`;
+                    });
+
+                    wrap.addEventListener('mouseleave', function() {
+                        isHovering = false;
+                        inner.style.transform = 'translate(-50%, -50%)';
+                    });
+                });
+
+                const shuffleElements = slide.querySelectorAll('[data-shuffle]');
+                shuffleElements.forEach(shuffleEl => {
+                    ProjectApp.animations.initAlternatingShuffleForElement(shuffleEl);
+                });
+            });
+        },
+
+        addHoverAnimationToPosterBlock(posterBlock) {
+            const wrappers = posterBlock.querySelectorAll('.report-hover-wrapper');
+            wrappers.forEach(wrap => {
+                const inner = wrap.querySelector('.video-hover-inner');
+                if (!inner) return;
+
+                if (getComputedStyle(wrap).position === 'static') {
+                    wrap.style.position = 'relative';
+                }
+                wrap.style.pointerEvents = 'auto';
+
+                inner.style.position = 'absolute';
+                inner.style.left = '50%';
+                inner.style.top = '50%';
+                inner.style.transform = 'translate(-50%, -50%)';
+                inner.style.pointerEvents = 'none';
+
+                let isHovering = false;
+
+                wrap.addEventListener('mouseenter', function(e) {
+                    isHovering = true;
+                    const r = wrap.getBoundingClientRect();
+                    const x = e.clientX - r.left;
+                    const y = e.clientY - r.top;
+                    inner.style.transform = `translate(calc(-50% + ${x - r.width/2}px), calc(-50% + ${y - r.height/2}px))`;
+                });
+
+                wrap.addEventListener('mousemove', function(e) {
+                    if (!isHovering) return;
+                    const r = wrap.getBoundingClientRect();
+                    const x = e.clientX - r.left;
+                    const y = e.clientY - r.top;
+                    inner.style.transform = `translate(calc(-50% + ${x - r.width/2}px), calc(-50% + ${y - r.height/2}px))`;
+                });
+
+                wrap.addEventListener('mouseleave', function() {
+                    isHovering = false;
+                    inner.style.transform = 'translate(-50%, -50%)';
+                });
+            });
+
+            const shuffleElements = posterBlock.querySelectorAll('[data-shuffle]');
+            shuffleElements.forEach(shuffleEl => {
+                ProjectApp.animations.initAlternatingShuffleForElement(shuffleEl);
+            });
+
+            if (!posterBlock.dataset.clickHandlerAdded) {
+                posterBlock.dataset.clickHandlerAdded = 'true';
+                posterBlock.style.cursor = 'pointer';
+                posterBlock.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const isAdding = !posterBlock.classList.contains('is--large');
+                    posterBlock.classList.toggle('is--large');
+
+                    const cursorTextBlock = posterBlock.querySelector('.cursor-text-block');
+                    if (cursorTextBlock) {
+                        if (isAdding) {
+                            cursorTextBlock.style.transform = 'translateY(-100%)';
+                        } else {
+                            cursorTextBlock.style.transform = 'translateY(0%)';
+                        }
+                    }
+
+                    const infoWrapper = document.querySelector('.info-wrapper');
+                    if (infoWrapper) {
+                        if (isAdding) {
+                            infoWrapper.style.zIndex = '0';
+                        } else {
+                            infoWrapper.style.zIndex = '900';
+                        }
+                    }
+
+                    if (isAdding) {
+                        if (typeof ScrollTrigger !== 'undefined') {
+                            ScrollTrigger.getAll().forEach(trigger => trigger.disable());
+                        }
+
+                        if (window.swiperInstance) {
+                            window.swiperInstance.allowSlideNext = false;
+                            window.swiperInstance.allowSlidePrev = false;
+                            window.swiperInstance.allowTouchMove = false;
+                        }
+
+                        const activeSlide = document.querySelector('.swiper-slide-active');
+                        const prevSlide = document.querySelector('.swiper-slide.is--prev-logical');
+
+                        if (activeSlide) {
+                            const previewWrapper = activeSlide.querySelector('.preview-wrapper_reportage');
+                            if (previewWrapper) {
+                                const previewBlocks = previewWrapper.querySelectorAll('.preview-block_reportage');
+                                if (previewBlocks[0]) {
+                                    previewBlocks[0].style.clipPath = 'polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)';
+                                }
+                                if (previewBlocks[1]) {
+                                    previewBlocks[1].style.clipPath = 'polygon(100% 0%, 100% 0%, 100% 100%, 100% 100%)';
+                                }
+                            }
+                        }
+
+                        if (prevSlide) {
+                            const previewWrapper = prevSlide.querySelector('.preview-wrapper_reportage');
+                            if (previewWrapper) {
+                                const previewBlocks = previewWrapper.querySelectorAll('.preview-block_reportage');
+                                if (previewBlocks[0]) {
+                                    previewBlocks[0].style.clipPath = 'polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)';
+                                }
+                                if (previewBlocks[1]) {
+                                    previewBlocks[1].style.clipPath = 'polygon(100% 0%, 100% 0%, 100% 100%, 100% 100%)';
+                                }
+                            }
+                        }
+                    } else {
+                        if (typeof ScrollTrigger !== 'undefined') {
+                            ScrollTrigger.getAll().forEach(trigger => trigger.enable());
+                        }
+
+                        if (window.swiperInstance) {
+                            window.swiperInstance.allowSlideNext = true;
+                            window.swiperInstance.allowSlidePrev = true;
+                            window.swiperInstance.allowTouchMove = true;
+                        }
+
+                        const activeSlide = document.querySelector('.swiper-slide-active');
+                        const prevSlide = document.querySelector('.swiper-slide.is--prev-logical');
+
+                        if (activeSlide) {
+                            const previewWrapper = activeSlide.querySelector('.preview-wrapper_reportage');
+                            if (previewWrapper) {
+                                const previewBlocks = previewWrapper.querySelectorAll('.preview-block_reportage');
+                                if (previewBlocks[0]) {
+                                    previewBlocks[0].style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+                                }
+                                if (previewBlocks[1]) {
+                                    previewBlocks[1].style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+                                }
+                            }
+                        }
+
+                        if (prevSlide) {
+                            const previewWrapper = prevSlide.querySelector('.preview-wrapper_reportage');
+                            if (previewWrapper) {
+                                const previewBlocks = previewWrapper.querySelectorAll('.preview-block_reportage');
+                                if (previewBlocks[0]) {
+                                    previewBlocks[0].style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+                                }
+                                if (previewBlocks[1]) {
+                                    previewBlocks[1].style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        },
+
+        initPosterBlockAnimations() {
+            const posterBlocks = document.querySelectorAll('.poster-block');
+            posterBlocks.forEach(posterBlock => {
+                if (posterBlock.dataset.posterAnimationsInitialized === 'true') return;
+                posterBlock.dataset.posterAnimationsInitialized = 'true';
+                ProjectApp.animations.addHoverAnimationToPosterBlock(posterBlock);
+            });
+        },
+
+        initBackgroundHoverBlock() {
+            const hoverWrappers = document.querySelectorAll('.hover-wrapper');
+
+            hoverWrappers.forEach(wrapper => {
+                const hoverBlock = wrapper.querySelector('.background-hover-block');
+                if (!hoverBlock) return;
+
+                const magnifiedImage = hoverBlock.querySelector('.magnified-image, img');
+                if (!magnifiedImage) return;
+
+                const hasPointer = window.matchMedia('(pointer: fine)').matches;
+                if (!hasPointer) return;
+
+                if (getComputedStyle(wrapper).position === 'static') {
+                    wrapper.style.position = 'relative';
+                }
+                wrapper.style.overflow = 'hidden';
+
+                hoverBlock.style.position = 'absolute';
+                hoverBlock.style.overflow = 'hidden';
+                hoverBlock.style.opacity = '0';
+                hoverBlock.style.pointerEvents = 'none';
+                hoverBlock.style.transition = 'opacity 0.5s cubic-bezier(0.75, 0, 0.25, 1)';
+
+                magnifiedImage.style.position = 'absolute';
+                magnifiedImage.style.objectFit = 'cover';
+
+                let isHovering = false;
+                let runAnimation = false;
+                let containerRect = null;
+                const magnification = 1.15;
+                const speed = 0.15;
+
+                let mouse = { x: 0, y: 0 };
+                let current = { x: 0, y: 0 };
+
+                const lerp = (start, end, factor) => start + (end - start) * factor;
+
+                const animate = () => {
+                    if (!runAnimation || !containerRect) return;
+
+                    current.x = lerp(current.x, mouse.x, speed);
+                    current.y = lerp(current.y, mouse.y, speed);
+
+                    const lensRect = hoverBlock.getBoundingClientRect();
+                    const lensWidth = lensRect.width;
+                    const lensHeight = lensRect.height;
+
+                    const relativeX = current.x - containerRect.left;
+                    const relativeY = current.y - containerRect.top;
+
+                    hoverBlock.style.left = `${relativeX - lensWidth / 2}px`;
+                    hoverBlock.style.top = `${relativeY - lensHeight / 2}px`;
+
+                    const percentX = relativeX / containerRect.width;
+                    const percentY = relativeY / containerRect.height;
+
+                    const imgWidth = containerRect.width * magnification;
+                    const imgHeight = containerRect.height * magnification;
+
+                    magnifiedImage.style.width = `${imgWidth}px`;
+                    magnifiedImage.style.height = `${imgHeight}px`;
+
+                    const offsetX = -percentX * imgWidth + lensWidth / 2;
+                    const offsetY = -percentY * imgHeight + lensHeight / 2;
+
+                    magnifiedImage.style.left = `${offsetX}px`;
+                    magnifiedImage.style.top = `${offsetY}px`;
+
+                    requestAnimationFrame(animate);
+                };
+
+                const updateMousePosition = (e) => {
+                    mouse.x = e.clientX;
+                    mouse.y = e.clientY;
+                };
+
+                const initializeOnWrapper = () => {
+                    containerRect = wrapper.getBoundingClientRect();
+
+                    const centerX = containerRect.left + containerRect.width / 2;
+                    const centerY = containerRect.top + containerRect.height / 2;
+
+                    mouse.x = centerX;
+                    mouse.y = centerY;
+                    current.x = centerX;
+                    current.y = centerY;
+
+                    hoverBlock.style.opacity = '1';
+
+                    runAnimation = true;
+                    animate();
+                };
+
+                const wrapperRect = wrapper.getBoundingClientRect();
+                const isInViewport = wrapperRect.top < window.innerHeight && wrapperRect.bottom > 0;
+
+                if (isInViewport) {
+                    setTimeout(initializeOnWrapper, 100);
+                }
+
+                wrapper.addEventListener('mouseenter', function(e) {
+                    if (!runAnimation) {
+                        initializeOnWrapper();
+                    }
+                    isHovering = true;
+                    mouse.x = e.clientX;
+                    mouse.y = e.clientY;
+                    hoverBlock.style.opacity = '1';
+                });
+
+                wrapper.addEventListener('mousemove', updateMousePosition);
+
+                wrapper.addEventListener('mouseleave', function() {
+                    isHovering = false;
+                    hoverBlock.style.opacity = '0';
+                });
+            });
+        },
+
+        addHoverAnimationToListItem(item) {
+            const wrappers = item.querySelectorAll('.video-hover-wrapper');
+            wrappers.forEach(wrap => {
+                const inner = wrap.querySelector('.video-hover-inner');
+                if (!inner) return;
+
+                if (getComputedStyle(wrap).position === 'static') {
+                    wrap.style.position = 'relative';
+                }
+                wrap.style.pointerEvents = 'auto';
+
+                inner.style.position = 'absolute';
+                inner.style.left = '50%';
+                inner.style.top = '50%';
+                inner.style.transform = 'translate(-50%, -50%)';
+                inner.style.pointerEvents = 'none';
+
+                let isHovering = false;
+
+                wrap.addEventListener('mouseenter', function(e) {
+                    isHovering = true;
+                    const r = wrap.getBoundingClientRect();
+                    const x = e.clientX - r.left;
+                    const y = e.clientY - r.top;
+                    inner.style.transform = `translate(calc(-50% + ${x - r.width/2}px), calc(-50% + ${y - r.height/2}px))`;
+                });
+
+                wrap.addEventListener('mousemove', function(e) {
+                    if (!isHovering) return;
+                    const r = wrap.getBoundingClientRect();
+                    const x = e.clientX - r.left;
+                    const y = e.clientY - r.top;
+                    inner.style.transform = `translate(calc(-50% + ${x - r.width/2}px), calc(-50% + ${y - r.height/2}px))`;
+                });
+
+                wrap.addEventListener('mouseleave', function() {
+                    isHovering = false;
+                    inner.style.transform = 'translate(-50%, -50%)';
+                });
+            });
+
+            if (ProjectApp.state.backgroundHoverHandler) {
+                item.addEventListener('mouseenter', function() {
+                    ProjectApp.state.backgroundHoverHandler(this);
+                });
+            }
+
+            const shuffleElements = item.querySelectorAll('[data-shuffle]');
+            shuffleElements.forEach(shuffleEl => {
+                ProjectApp.animations.initAlternatingShuffleForElement(shuffleEl);
+            });
+        },
+
+        initGuildsAnimations() {
+            const guildsElements = document.querySelectorAll('.guilds-image-wrapper [data-shuffle]');
+            guildsElements.forEach(element => {
+                ProjectApp.animations.initAlternatingShuffleForElement(element);
+            });
+        },
+
+        initPressAnimations() {
+            const pressElements = document.querySelectorAll('.press-hover[data-shuffle]');
+            pressElements.forEach(element => {
+                ProjectApp.animations.initAlternatingShuffleForElement(element);
+            });
+        },
+
+        cleanupLinkHover() {
+            ProjectApp.state.linkHoverState.items.forEach(r => {
+                try { r.link.removeEventListener('mouseenter', r.onEnter); } catch(e) {}
+                try { r.link.removeEventListener('mouseleave', r.onLeave); } catch(e) {}
+                try { window.removeEventListener('resize', r.onResize); } catch(e) {}
+
+                r.duplicateChars.forEach(d => d && d.parentNode && d.parentNode.removeChild(d));
+
+                try {
+                    r.split && r.split.revert && r.split.revert();
+                } catch(e) {}
+            });
+            ProjectApp.state.linkHoverState.items = [];
+        }
+    };
 
     (function () {
         ProjectApp.animations.cfg = ProjectApp.animations.cfg || {
@@ -7038,7 +7745,7 @@
     //     }
     // };
 
- //    // BARBA MANAGER
+    //    // BARBA MANAGER
  //    ProjectApp.barbaManager = {
  //     setBlockAlignments(blocks) {
  //         blocks.forEach((block, index) => {
