@@ -7860,12 +7860,21 @@
         ProjectApp.__bootDone = false;
 
         ProjectApp.__isCoreReady = function() {
-            return !!(
+            console.log('🔍 Checking core modules:');
+            console.log('  swiperModule.initSwiper:', !!ProjectApp.swiperModule?.initSwiper);
+            console.log('  listModule.ensureListInit:', !!ProjectApp.listModule?.ensureListInit);
+            console.log('  animations.initLinkHover:', !!ProjectApp.animations?.initLinkHover);
+            console.log('  barbaManager.init:', !!ProjectApp.barbaManager?.init);
+
+            const ready = !!(
                 ProjectApp.swiperModule?.initSwiper &&
                 ProjectApp.listModule?.ensureListInit &&
                 ProjectApp.animations?.initLinkHover &&
                 ProjectApp.barbaManager?.init
             );
+
+            console.log('  All ready?', ready);
+            return ready;
         };
 
         ProjectApp.bootstrap = function() {
