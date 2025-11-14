@@ -1338,580 +1338,653 @@
     if (!ProjectApp.state.switchAnim) ProjectApp.state.switchAnim = {listeners: []};
 
     ProjectApp.utils.norm = ProjectApp.utils.norm || function (s) {
-     return String(s || '').toLowerCase().trim();
- };
+        return String(s || '').toLowerCase().trim();
+    };
     ProjectApp.utils.withTemporarilyShown = ProjectApp.utils.withTemporarilyShown || function (el, fn) {
-     if (!el) return fn && fn();
-     const wasNone = getComputedStyle(el).display === 'none' || el.classList.contains('is--hidden');
-     const prev = { display: el.style.display, visibility: el.style.visibility, pointerEvents: el.style.pointerEvents };
-     if (wasNone) {
-         el.classList.remove('is--hidden');
-         el.style.display = 'block';
-         el.style.visibility = 'hidden';
-         el.style.pointerEvents = 'none';
-     }
-     try { return fn && fn(); } finally {
-         if (wasNone) {
-             el.style.display = prev.display || '';
-             el.style.visibility = prev.visibility || '';
-             el.style.pointerEvents = prev.pointerEvents || '';
-             el.classList.add('is--hidden');
-         }
-     }
- };
+        if (!el) return fn && fn();
+        const wasNone = getComputedStyle(el).display === 'none' || el.classList.contains('is--hidden');
+        const prev = { display: el.style.display, visibility: el.style.visibility, pointerEvents: el.style.pointerEvents };
+        if (wasNone) {
+            el.classList.remove('is--hidden');
+            el.style.display = 'block';
+            el.style.visibility = 'hidden';
+            el.style.pointerEvents = 'none';
+        }
+        try { return fn && fn(); } finally {
+            if (wasNone) {
+                el.style.display = prev.display || '';
+                el.style.visibility = prev.visibility || '';
+                el.style.pointerEvents = prev.pointerEvents || '';
+                el.classList.add('is--hidden');
+            }
+        }
+    };
     ProjectApp.utils.measureItemHeight = ProjectApp.utils.measureItemHeight || function(templates, listEl){
-     const tmp = document.createElement('div');
-     tmp.style.position = 'absolute';
-     tmp.style.left = '-99999px';
-     tmp.style.top = '0';
-     tmp.style.width = (listEl && listEl.clientWidth ? listEl.clientWidth : 1000) + 'px';
-     document.body.appendChild(tmp);
-     const first = templates && templates[0] ? templates[0].cloneNode(true) : null;
-     if (!first){ document.body.removeChild(tmp); return 120; }
-     tmp.appendChild(first);
-     const h = Math.max(1, first.offsetHeight || 0);
-     document.body.removeChild(tmp);
-     return h;
- };
+        const tmp = document.createElement('div');
+        tmp.style.position = 'absolute';
+        tmp.style.left = '-99999px';
+        tmp.style.top = '0';
+        tmp.style.width = (listEl && listEl.clientWidth ? listEl.clientWidth : 1000) + 'px';
+        document.body.appendChild(tmp);
+        const first = templates && templates[0] ? templates[0].cloneNode(true) : null;
+        if (!first){ document.body.removeChild(tmp); return 120; }
+        tmp.appendChild(first);
+        const h = Math.max(1, first.offsetHeight || 0);
+        document.body.removeChild(tmp);
+        return h;
+    };
 
     ProjectApp.templateManager = (function (prev) {
-     const tm = prev || {};
-     tm.captureListTemplatesOnce = tm.captureListTemplatesOnce || function () {
-         if (ProjectApp.state.listTemplates && ProjectApp.state.listTemplates.length) return;
-         const projectList = document.querySelector('.project-list');
-         if (!projectList) return;
-         if (!ProjectApp.state.listTemplates) ProjectApp.state.listTemplates = [];
-         ProjectApp.utils.withTemporarilyShown(projectList, () => {
-             const originals = Array.from(projectList.querySelectorAll('.project-item'));
-             ProjectApp.state.listTemplates = originals.map(n => n.cloneNode(true));
-         });
-     };
-     tm.getItemCategory = tm.getItemCategory || function (el) {
-         const raw = el.getAttribute('filter') ?? el.getAttribute('data-filter') ?? '';
-         return ProjectApp.utils.norm(raw || 'all');
-     };
-     tm.matchesCurrentCategory = function (el, category) {
-         const current = ProjectApp.utils.norm(category != null ? category : (ProjectApp.state.currentCategory || 'all'));
-         if (current === 'all') return true;
-         return ProjectApp.templateManager.getItemCategory(el) === current;
-     };
-     tm.getFilteredListTemplates = function (category) {
-         this.captureListTemplatesOnce();
-         const list = ProjectApp.state.listTemplates || [];
-         return list.filter(el => this.matchesCurrentCategory(el, category));
-     };
-     tm.getAllListTemplates = tm.getAllListTemplates || function () {
-         this.captureListTemplatesOnce();
-         return (ProjectApp.state.listTemplates || []).slice();
-     };
-     return tm;
- })(ProjectApp.templateManager);
+        const tm = prev || {};
+        tm.captureListTemplatesOnce = tm.captureListTemplatesOnce || function () {
+            if (ProjectApp.state.listTemplates && ProjectApp.state.listTemplates.length) return;
+            const projectList = document.querySelector('.project-list');
+            if (!projectList) return;
+            if (!ProjectApp.state.listTemplates) ProjectApp.state.listTemplates = [];
+            ProjectApp.utils.withTemporarilyShown(projectList, () => {
+                const originals = Array.from(projectList.querySelectorAll('.project-item'));
+                ProjectApp.state.listTemplates = originals.map(n => n.cloneNode(true));
+            });
+        };
+        tm.getItemCategory = tm.getItemCategory || function (el) {
+            const raw = el.getAttribute('filter') ?? el.getAttribute('data-filter') ?? '';
+            return ProjectApp.utils.norm(raw || 'all');
+        };
+        tm.matchesCurrentCategory = function (el, category) {
+            const current = ProjectApp.utils.norm(category != null ? category : (ProjectApp.state.currentCategory || 'all'));
+            if (current === 'all') return true;
+            return ProjectApp.templateManager.getItemCategory(el) === current;
+        };
+        tm.getFilteredListTemplates = function (category) {
+            this.captureListTemplatesOnce();
+            const list = ProjectApp.state.listTemplates || [];
+            return list.filter(el => this.matchesCurrentCategory(el, category));
+        };
+        tm.getAllListTemplates = tm.getAllListTemplates || function () {
+            this.captureListTemplatesOnce();
+            return (ProjectApp.state.listTemplates || []).slice();
+        };
+        return tm;
+    })(ProjectApp.templateManager);
 
     ProjectApp.uiLock = (() => {
-     let depth = 0;
-     function setDisabled(disabled) {
-         const nodes = document.querySelectorAll('.filter-item, .option-item, .mode-block');
-         nodes.forEach((el) => {
-             el.classList.toggle('is--disabled', disabled);
-             el.style.pointerEvents = disabled ? 'none' : '';
-             el.setAttribute('aria-disabled', disabled ? 'true' : 'false');
-             if (disabled) {
-                 el.dataset._tabindex = el.getAttribute('tabindex') ?? '';
-                 el.setAttribute('tabindex', '-1');
-             } else {
-                 const prev = el.dataset._tabindex;
-                 if (prev !== undefined) {
-                     if (prev === '') el.removeAttribute('tabindex');
-                     else el.setAttribute('tabindex', prev);
-                     delete el.dataset._tabindex;
-                 }
-             }
-         });
-     }
-     return {
-         lock()   { if (++depth === 1) setDisabled(true); },
-         unlock() { depth = Math.max(0, depth - 1); if (depth === 0) setDisabled(false); },
-         isLocked(){ return depth > 0; }
-     };
- })();
+        let depth = 0;
+        function setDisabled(disabled) {
+            const nodes = document.querySelectorAll('.filter-item, .option-item, .mode-block');
+            nodes.forEach((el) => {
+                el.classList.toggle('is--disabled', disabled);
+                el.style.pointerEvents = disabled ? 'none' : '';
+                el.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+                if (disabled) {
+                    el.dataset._tabindex = el.getAttribute('tabindex') ?? '';
+                    el.setAttribute('tabindex', '-1');
+                } else {
+                    const prev = el.dataset._tabindex;
+                    if (prev !== undefined) {
+                        if (prev === '') el.removeAttribute('tabindex');
+                        else el.setAttribute('tabindex', prev);
+                        delete el.dataset._tabindex;
+                    }
+                }
+            });
+        }
+        return {
+            lock()   { if (++depth === 1) setDisabled(true); },
+            unlock() { depth = Math.max(0, depth - 1); if (depth === 0) setDisabled(false); },
+            isLocked(){ return depth > 0; }
+        };
+    })();
 
     ProjectApp.filterCooldown = (() => {
-     let until = 0, timer = null;
-     function applyDisabled(disabled) {
-         const btns = document.querySelectorAll('.filter-item');
-         btns.forEach(b => {
-             b.classList.toggle('is--disabled', disabled);
-             b.setAttribute('aria-disabled', disabled ? 'true' : 'false');
-             b.style.pointerEvents = disabled ? 'none' : '';
-             if (disabled) {
-                 b.dataset._tabindex = b.getAttribute('tabindex') ?? '';
-                 b.setAttribute('tabindex', '-1');
-             } else {
-                 const prev = b.dataset._tabindex;
-                 if (prev !== undefined) {
-                     if (prev === '') b.removeAttribute('tabindex'); else b.setAttribute('tabindex', prev);
-                     delete b.dataset._tabindex;
-                 }
-             }
-         });
-     }
-     function isActive() { return Date.now() < until; }
-     function start(ms = 50) {
-         until = Date.now() + ms;
-         clearTimeout(timer);
-         applyDisabled(true);
-         timer = setTimeout(() => { if (!isActive()) applyDisabled(false); }, ms + 5);
-     }
-     function cancel() { until = 0; clearTimeout(timer); applyDisabled(false); }
-     return { isActive, start, cancel };
- })();
+        let until = 0, timer = null;
+        function applyDisabled(disabled) {
+            const btns = document.querySelectorAll('.filter-item');
+            btns.forEach(b => {
+                b.classList.toggle('is--disabled', disabled);
+                b.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+                b.style.pointerEvents = disabled ? 'none' : '';
+                if (disabled) {
+                    b.dataset._tabindex = b.getAttribute('tabindex') ?? '';
+                    b.setAttribute('tabindex', '-1');
+                } else {
+                    const prev = b.dataset._tabindex;
+                    if (prev !== undefined) {
+                        if (prev === '') b.removeAttribute('tabindex'); else b.setAttribute('tabindex', prev);
+                        delete b.dataset._tabindex;
+                    }
+                }
+            });
+        }
+        function isActive() { return Date.now() < until; }
+        function start(ms = 50) {
+            until = Date.now() + ms;
+            clearTimeout(timer);
+            applyDisabled(true);
+            timer = setTimeout(() => { if (!isActive()) applyDisabled(false); }, ms + 5);
+        }
+        function cancel() { until = 0; clearTimeout(timer); applyDisabled(false); }
+        return { isActive, start, cancel };
+    })();
 
     ProjectApp.slideHelpers = {
-     _CLIP_FULL: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-     _CLIP_BASE: 'polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)',
-     _CLIP_TOP:  'polygon(0 0%, 100% 0%, 100% 0%, 0 0%)',
-     _CLIP_BOT:  'polygon(0 100%, 100% 100%, 100% 100%, 0% 100%)',
+        _CLIP_FULL: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+        _CLIP_BASE: 'polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)',
+        _CLIP_TOP:  'polygon(0 0%, 100% 0%, 100% 0%, 0 0%)',
+        _CLIP_BOT:  'polygon(0 100%, 100% 100%, 100% 100%, 0% 100%)',
 
-     setSlideBaseline(slide) {
-         if (!slide || !window.gsap) return;
-         const gs = gsap;
-         const projectBlocks = slide.querySelectorAll('.project-block');
-         the_bg = slide.querySelectorAll('.background-video-block');
-         const previewBottom = slide.querySelectorAll('.preview-block.is--bottom');
-         const previewTop    = slide.querySelectorAll('.preview-block.is--top');
-         const nameLeftLines = slide.querySelectorAll('.name-wrapper.has--align-left');
-         const nameRightLines= slide.querySelectorAll('.name-wrapper.has--align-right');
+        setSlideBaseline(slide) {
+            if (!slide || !window.gsap) return;
+            const gs = gsap;
+            const projectBlocks = slide.querySelectorAll('.project-block');
+            the_bg = slide.querySelectorAll('.background-video-block');
+            const previewBottom = slide.querySelectorAll('.preview-block.is--bottom');
+            const previewTop    = slide.querySelectorAll('.preview-block.is--top');
+            const nameLeftLines = slide.querySelectorAll('.name-wrapper.has--align-left');
+            const nameRightLines= slide.querySelectorAll('.name-wrapper.has--align-right');
 
-         if (projectBlocks.length) gs.set(projectBlocks, { clipPath: this._CLIP_BASE });
-         if (the_bg.length)        gs.set(the_bg,        { clipPath: this._CLIP_BASE });
-         if (previewTop.length)    gs.set(previewTop,    { clipPath: this._CLIP_TOP  });
-         if (previewBottom.length) gs.set(previewBottom, { clipPath: this._CLIP_BOT  });
+            if (projectBlocks.length) gs.set(projectBlocks, { clipPath: this._CLIP_BASE });
+            if (the_bg.length)        gs.set(the_bg,        { clipPath: this._CLIP_BASE });
+            if (previewTop.length)    gs.set(previewTop,    { clipPath: this._CLIP_TOP  });
+            if (previewBottom.length) gs.set(previewBottom, { clipPath: this._CLIP_BOT  });
 
-         if (nameLeftLines.length)  gs.set(nameLeftLines,  { opacity: 0 });
-         if (nameRightLines.length) gs.set(nameRightLines, { opacity: 0 });
-     },
+            if (nameLeftLines.length)  gs.set(nameLeftLines,  { opacity: 0 });
+            if (nameRightLines.length) gs.set(nameRightLines, { opacity: 0 });
+        },
 
-     revealSlide(slide, duration = 0.8) {
-         if (!slide || !window.gsap) return Promise.resolve();
-         const ez = 'headingHoverEase';
-         const tl = gsap.timeline();
-         const projectBlocks = slide.querySelectorAll('.project-block');
-         const the_bg        = slide.querySelectorAll('.background-video-block');
-         const previewBottom = slide.querySelectorAll('.preview-block.is--bottom');
-         const previewTop    = slide.querySelectorAll('.preview-block.is--top');
-         const nameLeftLines = slide.querySelectorAll('.name-wrapper.has--align-left ');
-         const nameRightLines= slide.querySelectorAll('.name-wrapper.has--align-right');
+        revealSlide(slide, duration = 0.8) {
+            if (!slide || !window.gsap) return Promise.resolve();
+            const ez = 'headingHoverEase';
+            const tl = gsap.timeline();
+            const projectBlocks = slide.querySelectorAll('.project-block');
+            const the_bg        = slide.querySelectorAll('.background-video-block');
+            const previewBottom = slide.querySelectorAll('.preview-block.is--bottom');
+            const previewTop    = slide.querySelectorAll('.preview-block.is--top');
+            const nameLeftLines = slide.querySelectorAll('.name-wrapper.has--align-left ');
+            const nameRightLines= slide.querySelectorAll('.name-wrapper.has--align-right');
 
-         if (projectBlocks.length)  tl.to(projectBlocks,  { clipPath: this._CLIP_FULL, duration, ease: ez }, 0);
-         if (the_bg.length)         tl.to(the_bg,        { clipPath: this._CLIP_FULL, duration, ease: ez }, 0);
-         if (previewBottom.length)  tl.to(previewBottom, { clipPath: this._CLIP_FULL, duration, ease: ez }, 0);
-         if (previewTop.length)     tl.to(previewTop,    { clipPath: this._CLIP_FULL, duration, ease: ez }, 0);
+            if (projectBlocks.length)  tl.to(projectBlocks,  { clipPath: this._CLIP_FULL, duration, ease: ez }, 0);
+            if (the_bg.length)         tl.to(the_bg,        { clipPath: this._CLIP_FULL, duration, ease: ez }, 0);
+            if (previewBottom.length)  tl.to(previewBottom, { clipPath: this._CLIP_FULL, duration, ease: ez }, 0);
+            if (previewTop.length)     tl.to(previewTop,    { clipPath: this._CLIP_FULL, duration, ease: ez }, 0);
 
-         if (nameLeftLines.length)  tl.to(nameLeftLines,  { opacity: 1, duration, ease: ez, willChange: 'opacity' }, 0);
-         if (nameRightLines.length) tl.to(nameRightLines, { opacity: 1, duration, ease: ez, willChange: 'opacity' }, 0);
+            if (nameLeftLines.length)  tl.to(nameLeftLines,  { opacity: 1, duration, ease: ez, willChange: 'opacity' }, 0);
+            if (nameRightLines.length) tl.to(nameRightLines, { opacity: 1, duration, ease: ez, willChange: 'opacity' }, 0);
 
-         tl.add(() => {
-             const clearTargets = [...projectBlocks, ...the_bg, ...previewBottom, ...previewTop, ...nameLeftLines, ...nameRightLines];
-             if (clearTargets.length && window.gsap) {
-                 gsap.set(clearTargets, { clearProps: 'clipPath,transform,opacity,filter,willChange,transition' });
-             }
-             clearTargets.forEach(el => {
-                 el.style.removeProperty('clip-path');
-                 el.style.removeProperty('transform');
-                 el.style.removeProperty('opacity');
-                 el.style.removeProperty('filter');
-                 el.style.removeProperty('will-change');
-                 el.style.removeProperty('transition');
-                 if ((el.getAttribute('style') || '').trim() === '') el.removeAttribute('style');
-             });
-         }, '+=0.01');
+            tl.add(() => {
+                const clearTargets = [...projectBlocks, ...the_bg, ...previewBottom, ...previewTop, ...nameLeftLines, ...nameRightLines];
+                if (clearTargets.length && window.gsap) {
+                    gsap.set(clearTargets, { clearProps: 'clipPath,transform,opacity,filter,willChange,transition' });
+                }
+                clearTargets.forEach(el => {
+                    el.style.removeProperty('clip-path');
+                    el.style.removeProperty('transform');
+                    el.style.removeProperty('opacity');
+                    el.style.removeProperty('filter');
+                    el.style.removeProperty('will-change');
+                    el.style.removeProperty('transition');
+                    if ((el.getAttribute('style') || '').trim() === '') el.removeAttribute('style');
+                });
+            }, '+=0.01');
 
-         return new Promise(r => tl.eventCallback('onComplete', r));
-     },
+            return new Promise(r => tl.eventCallback('onComplete', r));
+        },
 
-     hideToBaseline(slide, duration = 0.8, ease = 'headingHoverEase') {
-         if (!slide || !window.gsap) return Promise.resolve();
+        hideToBaseline(slide, duration = 0.8, ease = 'headingHoverEase') {
+            if (!slide || !window.gsap) return Promise.resolve();
 
-         const tl = gsap.timeline({ defaults: { ease } });
-         const allSlides = [
-             slide,
-             ...slide.parentElement.querySelectorAll('.swiper-slide-prev, .w-dyn-item.__armed')
-         ].filter((el, i, arr) => el && arr.indexOf(el) === i);
+            const tl = gsap.timeline({ defaults: { ease } });
+            const allSlides = [
+                slide,
+                ...slide.parentElement.querySelectorAll('.swiper-slide-prev, .w-dyn-item.__armed')
+            ].filter((el, i, arr) => el && arr.indexOf(el) === i);
 
-         allSlides.forEach((sl) => {
-             const projectBlocks = sl.querySelectorAll('.project-block');
-             const the_bg        = sl.querySelectorAll('.background-video-block');
-             const previewTop    = sl.querySelectorAll('.preview-block.is--top');
-             const previewBottom = sl.querySelectorAll('.preview-block.is--bottom');
-             const nameLeftLines = sl.querySelectorAll('.name-wrapper.has--align-left ');
-             const nameRightLines= sl.querySelectorAll('.name-wrapper.has--align-right ');
+            allSlides.forEach((sl) => {
+                const projectBlocks = sl.querySelectorAll('.project-block');
+                const the_bg        = sl.querySelectorAll('.background-video-block');
+                const previewTop    = sl.querySelectorAll('.preview-block.is--top');
+                const previewBottom = sl.querySelectorAll('.preview-block.is--bottom');
+                const nameLeftLines = sl.querySelectorAll('.name-wrapper.has--align-left ');
+                const nameRightLines= sl.querySelectorAll('.name-wrapper.has--align-right ');
 
-             const media = [...projectBlocks, ...the_bg];
-             const allTargets = [...media, ...previewTop, ...previewBottom, ...nameLeftLines, ...nameRightLines];
+                const media = [...projectBlocks, ...the_bg];
+                const allTargets = [...media, ...previewTop, ...previewBottom, ...nameLeftLines, ...nameRightLines];
 
-             if (allTargets.length) {
-                 gsap.killTweensOf(allTargets);
-                 gsap.set(allTargets, { transition: 'none' });
-             }
+                if (allTargets.length) {
+                    gsap.killTweensOf(allTargets);
+                    gsap.set(allTargets, { transition: 'none' });
+                }
 
-             if (previewTop.length)    gsap.set(previewTop,    { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' });
-             if (previewBottom.length) gsap.set(previewBottom, { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' });
+                if (previewTop.length)    gsap.set(previewTop,    { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' });
+                if (previewBottom.length) gsap.set(previewBottom, { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' });
 
-             tl.addLabel('go', 0);
+                tl.addLabel('go', 0);
 
-             if (media.length)         tl.to(media,         { clipPath: this._CLIP_BASE, duration, ease, lazy: false, overwrite: 'auto', willChange: 'clip-path' }, 'go');
-             if (previewTop.length)    tl.to(previewTop,    { clipPath: this._CLIP_TOP,  duration, ease, lazy: false, overwrite: 'auto', willChange: 'clip-path' }, 'go');
-             if (previewBottom.length) tl.to(previewBottom, { clipPath: this._CLIP_BOT,  duration, ease, lazy: false, overwrite: 'auto', willChange: 'clip-path' }, 'go');
+                if (media.length)         tl.to(media,         { clipPath: this._CLIP_BASE, duration, ease, lazy: false, overwrite: 'auto', willChange: 'clip-path' }, 'go');
+                if (previewTop.length)    tl.to(previewTop,    { clipPath: this._CLIP_TOP,  duration, ease, lazy: false, overwrite: 'auto', willChange: 'clip-path' }, 'go');
+                if (previewBottom.length) tl.to(previewBottom, { clipPath: this._CLIP_BOT,  duration, ease, lazy: false, overwrite: 'auto', willChange: 'clip-path' }, 'go');
 
-             if (nameLeftLines.length)  tl.to(nameLeftLines,  { opacity: 0, duration, ease, lazy: false, overwrite: 'auto', willChange: 'opacity' }, 'go');
-             if (nameRightLines.length) tl.to(nameRightLines, { opacity: 0, duration, ease, lazy: false, overwrite: 'auto', willChange: 'opacity' }, 'go');
+                if (nameLeftLines.length)  tl.to(nameLeftLines,  { opacity: 0, duration, ease, lazy: false, overwrite: 'auto', willChange: 'opacity' }, 'go');
+                if (nameRightLines.length) tl.to(nameRightLines, { opacity: 0, duration, ease, lazy: false, overwrite: 'auto', willChange: 'opacity' }, 'go');
 
-             tl.add(() => {
-                 if (allTargets.length) gsap.set(allTargets, { clearProps: 'transition,willChange' });
-             }, 'go+=' + duration);
-         });
+                tl.add(() => {
+                    if (allTargets.length) gsap.set(allTargets, { clearProps: 'transition,willChange' });
+                }, 'go+=' + duration);
+            });
 
-         return new Promise(r => tl.eventCallback('onComplete', r));
-     }
- };
+            return new Promise(r => tl.eventCallback('onComplete', r));
+        }
+    };
 
     ProjectApp.visibleCleaner = (function () {
-     const SELECTORS = [
-         '.project-block',
-         '.background-video-block',
-         '.preview-block.is--top',
-         '.preview-block.is--bottom',
-         '.name-wrapper.has--align-left ',
-         '.name-wrapper.has--align-right '
-     ];
-     const cleaned = new WeakSet();
+        const SELECTORS = [
+            '.project-block',
+            '.background-video-block',
+            '.preview-block.is--top',
+            '.preview-block.is--bottom',
+            '.name-wrapper.has--align-left ',
+            '.name-wrapper.has--align-right '
+        ];
+        const cleaned = new WeakSet();
 
-     function clearInline(el) {
-         if (window.gsap) gsap.set(el, { clearProps: 'clipPath,transform,opacity,filter,willChange,transition' });
-         el.style.removeProperty('clip-path');
-         el.style.removeProperty('transform');
-         el.style.removeProperty('opacity');
-         el.style.removeProperty('filter');
-         el.style.removeProperty('will-change');
-         el.style.removeProperty('transition');
-         if ((el.getAttribute('style') || '').trim() === '') el.removeAttribute('style');
-     }
+        function clearInline(el) {
+            if (window.gsap) gsap.set(el, { clearProps: 'clipPath,transform,opacity,filter,willChange,transition' });
+            el.style.removeProperty('clip-path');
+            el.style.removeProperty('transform');
+            el.style.removeProperty('opacity');
+            el.style.removeProperty('filter');
+            el.style.removeProperty('will-change');
+            el.style.removeProperty('transition');
+            if ((el.getAttribute('style') || '').trim() === '') el.removeAttribute('style');
+        }
 
-     function runFor(swiperEl) {
-         if (!swiperEl || cleaned.has(swiperEl)) return;
-         const nodes = SELECTORS.flatMap(sel => Array.from(swiperEl.querySelectorAll(sel)));
-         nodes.forEach(clearInline);
-         cleaned.add(swiperEl);
-     }
+        function runFor(swiperEl) {
+            if (!swiperEl || cleaned.has(swiperEl)) return;
+            const nodes = SELECTORS.flatMap(sel => Array.from(swiperEl.querySelectorAll(sel)));
+            nodes.forEach(clearInline);
+            cleaned.add(swiperEl);
+        }
 
-     function scheduleFor(swiperEl, ms = 50) {
-         if (!swiperEl || cleaned.has(swiperEl)) return;
-         setTimeout(() => runFor(swiperEl), ms);
-     }
+        function scheduleFor(swiperEl, ms = 50) {
+            if (!swiperEl || cleaned.has(swiperEl)) return;
+            setTimeout(() => runFor(swiperEl), ms);
+        }
 
-     function reset(swiperEl) {
-         if (swiperEl && cleaned.has(swiperEl)) cleaned.delete(swiperEl);
-     }
+        function reset(swiperEl) {
+            if (swiperEl && cleaned.has(swiperEl)) cleaned.delete(swiperEl);
+        }
 
-     return {runFor, scheduleFor, reset};
- })();
+        return {runFor, scheduleFor, reset};
+    })();
 
     ProjectApp._revealedActive = ProjectApp._revealedActive || new WeakMap();
 
     ProjectApp.eventHandlers = {
-     setupSharedListeners() {
-         const form = document.querySelector('#email-form');
-         if (form && !form._catHandlerInstalled) {
-             form.addEventListener('change', ProjectApp.eventHandlers.handleRadioChange, true);
-             form._catHandlerInstalled = true;
-         }
-         document.addEventListener('click', ProjectApp.eventHandlers.handleClearClick, true);
-         if (!ProjectApp._filterGuardInstalled) {
-             document.addEventListener('click', (e) => {
-                 const el = e.target.closest('.filter-item, .option-item, .mode-block');
-                 if (!el) return;
-                 if (ProjectApp.uiLock?.isLocked()) {
-                     e.preventDefault();
-                     e.stopPropagation();
-                     return;
-                 }
-                 if (el.matches('.filter-item') && ProjectApp.filterCooldown.isActive()) {
-                     e.preventDefault();
-                     e.stopPropagation();
-                     return;
-                 }
-             }, true);
-             ProjectApp._filterGuardInstalled = true;
-         }
-     },
+        setupSharedListeners() {
+            const form = document.querySelector('#email-form');
+            if (form && !form._catHandlerInstalled) {
+                form.addEventListener('change', ProjectApp.eventHandlers.handleRadioChange, true);
+                form._catHandlerInstalled = true;
+            }
+            document.addEventListener('click', ProjectApp.eventHandlers.handleClearClick, true);
+            if (!ProjectApp._filterGuardInstalled) {
+                document.addEventListener('click', (e) => {
+                    const el = e.target.closest('.filter-item, .option-item, .mode-block');
+                    if (!el) return;
+                    if (ProjectApp.uiLock?.isLocked()) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                    }
+                    if (el.matches('.filter-item') && ProjectApp.filterCooldown.isActive()) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                    }
+                }, true);
+                ProjectApp._filterGuardInstalled = true;
+            }
+        },
 
-     cleanupSharedListeners() {
-         const form = document.querySelector('#email-form');
-         if (form && form._catHandlerInstalled) {
-             form.removeEventListener('change', ProjectApp.eventHandlers.handleRadioChange, true);
-             delete form._catHandlerInstalled;
-         }
-         document.removeEventListener('click', ProjectApp.eventHandlers.handleClearClick, true);
-     },
+        cleanupSharedListeners() {
+            const form = document.querySelector('#email-form');
+            if (form && form._catHandlerInstalled) {
+                form.removeEventListener('change', ProjectApp.eventHandlers.handleRadioChange, true);
+                delete form._catHandlerInstalled;
+            }
+            document.removeEventListener('click', ProjectApp.eventHandlers.handleClearClick, true);
+        },
 
-     handleRadioChange(e) {
-         if (ProjectApp.uiLock?.isLocked() || ProjectApp.filterCooldown.isActive()) return;
-         const input = e.target && e.target.matches ? e.target : null;
-         if (!input || !input.matches('input[type="radio"][name="radio"]')) return;
-         const val = String(input.value || 'all').trim().toLowerCase();
-         const labels = Array.from(document.querySelectorAll('.filter-item'));
-         labels.forEach(l => {
-             const i = l.querySelector('input[type="radio"][name="radio"]');
-             l.classList.toggle('is--active', i && i.checked);
-         });
-         if (ProjectApp.filterModule?.setCategory) {
-             ProjectApp.filterModule.setCategory(val);
-             ProjectApp.filterCooldown.start(50);
-         }
-     },
+        handleRadioChange(e) {
+            if (ProjectApp.uiLock?.isLocked() || ProjectApp.filterCooldown.isActive()) return;
+            const input = e.target && e.target.matches ? e.target : null;
+            if (!input || !input.matches('input[type="radio"][name="radio"]')) return;
+            const val = String(input.value || 'all').trim().toLowerCase();
+            const labels = Array.from(document.querySelectorAll('.filter-item'));
+            labels.forEach(l => {
+                const i = l.querySelector('input[type="radio"][name="radio"]');
+                l.classList.toggle('is--active', i && i.checked);
+            });
+            if (ProjectApp.filterModule?.setCategory) {
+                ProjectApp.filterModule.setCategory(val);
+                ProjectApp.filterCooldown.start(50);
+            }
+        },
 
-     handleClearClick(e) {
-         if (ProjectApp.uiLock?.isLocked() || ProjectApp.filterCooldown.isActive()) return;
-         const btn = e.target.closest('[fs-list-element="clear"]');
-         if (!btn) return;
-         e.preventDefault();
-         e.stopPropagation();
-         const form = document.querySelector('#email-form');
-         const all = form ? form.querySelector('input[type="radio"][name="radio"][value="all"]') : null;
-         if (all) {
-             all.checked = true;
-             all.dispatchEvent(new Event('change', {bubbles: true}));
-         }
-     }
- };
+        handleClearClick(e) {
+            if (ProjectApp.uiLock?.isLocked() || ProjectApp.filterCooldown.isActive()) return;
+            const btn = e.target.closest('[fs-list-element="clear"]');
+            if (!btn) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const form = document.querySelector('#email-form');
+            const all = form ? form.querySelector('input[type="radio"][name="radio"][value="all"]') : null;
+            if (all) {
+                all.checked = true;
+                all.dispatchEvent(new Event('change', {bubbles: true}));
+            }
+        }
+    };
 
     ProjectApp.swiperFx = {
-     getAll() {
-         return Array.from(document.querySelectorAll('.swipers-container .swiper'));
-     },
-     getVisible() {
-         return document.querySelector('.swipers-container .swiper.is--visible');
-     },
-     getActiveSlide(swiperEl) {
-         const inst = swiperEl && swiperEl.swiper;
-         return inst ? inst.slides[inst.activeIndex] : swiperEl?.querySelector('.swiper-slide-active, .is--active-logical');
-     },
-     hide(swiperEl) {
-         if (!swiperEl) return;
-         swiperEl.classList.remove('is--visible');
-         ProjectApp.visibleCleaner.reset(swiperEl);
-         ProjectApp._revealedActive.delete(swiperEl);
-     },
-     hideAll() {
-         this.getAll().forEach(el => this.hide(el));
-     },
-     setVisible(swiperEl) {
-         if (!swiperEl) return;
-         this.hideAll();
-         swiperEl.classList.add('is--visible');
-     },
-     async animateOut(swiperEl) {
-         if (!swiperEl || !window.gsap) return;
-         const slide = this.getActiveSlide(swiperEl);
-         if (!slide) return;
-         await ProjectApp.slideHelpers.hideToBaseline(slide, .8, 'headingHoverEase');
-     }
- };
+        getAll() {
+            return Array.from(document.querySelectorAll('.swipers-container .swiper'));
+        },
+        getVisible() {
+            return document.querySelector('.swipers-container .swiper.is--visible');
+        },
+        getActiveSlide(swiperEl) {
+            const inst = swiperEl && swiperEl.swiper;
+            return inst ? inst.slides[inst.activeIndex] : swiperEl?.querySelector('.swiper-slide-active, .is--active-logical');
+        },
+        hide(swiperEl) {
+            if (!swiperEl) return;
+            swiperEl.classList.remove('is--visible');
+            ProjectApp.visibleCleaner.reset(swiperEl);
+            ProjectApp._revealedActive.delete(swiperEl);
+        },
+        hideAll() {
+            this.getAll().forEach(el => this.hide(el));
+        },
+        setVisible(swiperEl) {
+            if (!swiperEl) return;
+            this.hideAll();
+            swiperEl.classList.add('is--visible');
+        },
+        async animateOut(swiperEl) {
+            if (!swiperEl || !window.gsap) return;
+            const slide = this.getActiveSlide(swiperEl);
+            if (!slide) return;
+            await ProjectApp.slideHelpers.hideToBaseline(slide, .8, 'headingHoverEase');
+        }
+    };
 
     ProjectApp.viewSwitcher = {
-     _getListHoverBlock() {
-         return document.querySelector('.background-block.list-hover');
-     },
-     _fade(el, toVisible) {
-         if (!el) return;
-         if (window.gsap) {
-             gsap.killTweensOf(el);
-             gsap.to(el, {opacity: toVisible ? 1 : 0, duration: 0.6, ease: 'power2.out'});
-         } else {
-             el.style.opacity = toVisible ? '1' : '0';
-         }
-     },
+        _getListHoverBlock() {
+            return document.querySelector('.background-block.list-hover');
+        },
+        _fade(el, toVisible) {
+            if (!el) return;
+            if (window.gsap) {
+                gsap.killTweensOf(el);
+                gsap.to(el, {opacity: toVisible ? 1 : 0, duration: 0.6, ease: 'power2.out'});
+            } else {
+                el.style.opacity = toVisible ? '1' : '0';
+            }
+        },
 
-     async _revealVisibleSwiperOnce(swiperEl) {
-         const active = ProjectApp.swiperFx.getActiveSlide(swiperEl);
-         if (!active) {
-             return;
-         }
-         const last = ProjectApp._revealedActive.get(swiperEl);
-         if (last === active) {
-             return;
-         }
-         if (window.gsap) {
-             const t = active.querySelectorAll('.project-block, .background-video-block, .preview-block.is--top, .preview-block.is--bottom');
-             gsap.killTweensOf(t);
-         }
-         ProjectApp.slideHelpers.setSlideBaseline(active);
-         await ProjectApp.slideHelpers.revealSlide(active, 0.8);
-         ProjectApp._revealedActive.set(swiperEl, active);
-         ProjectApp.visibleCleaner.runFor(swiperEl);
-     },
+        async _revealVisibleSwiperOnce(swiperEl) {
+            const active = ProjectApp.swiperFx.getActiveSlide(swiperEl);
+            if (!active) {
+                return;
+            }
+            const last = ProjectApp._revealedActive.get(swiperEl);
+            if (last === active) {
+                return;
+            }
+            if (window.gsap) {
+                const t = active.querySelectorAll('.project-block, .background-video-block, .preview-block.is--top, .preview-block.is--bottom');
+                gsap.killTweensOf(t);
+            }
+            ProjectApp.slideHelpers.setSlideBaseline(active);
+            await ProjectApp.slideHelpers.revealSlide(active, 0.8);
+            ProjectApp._revealedActive.set(swiperEl, active);
+            ProjectApp.visibleCleaner.runFor(swiperEl);
+        },
 
-     async switchView(mode) {
-         if (mode === ProjectApp.state?.currentView) return;
-         if (ProjectApp.uiLock?.isLocked()) return;
-         ProjectApp.uiLock?.lock();
-         try {
-             const swipersContainer = document.querySelector('.swipers-container');
-             const projectCollection = document.querySelector('.project-collection');
-             const projectList = document.querySelector('.project-list');
-             const LHB = this._getListHoverBlock();
+        async switchView(mode) {
+            if (mode === ProjectApp.state?.currentView) return;
+            if (ProjectApp.uiLock?.isLocked()) return;
+            ProjectApp.uiLock?.lock();
+            try {
+                const swipersContainer = document.querySelector('.swipers-container');
+                const projectCollection = document.querySelector('.project-collection');
+                const projectList = document.querySelector('.project-list');
+                const LHB = this._getListHoverBlock();
 
-             if (mode === 'list') {
-                 if (ProjectApp.state?.currentView === 'swiper') {
-                     const vis = ProjectApp.swiperFx.getVisible();
-                     if (vis) {
-                         await ProjectApp.swiperFx.animateOut(vis);
-                         await new Promise(r => setTimeout(r, HIDE_DELAY_MS));
-                         ProjectApp.swiperFx.hide(vis);
-                     }
-                 }
-                 if (projectCollection) projectCollection.classList.remove('is--hidden');
-                 if (swipersContainer) swipersContainer.classList.add('is--hidden');
-                 if (projectList) {
-                     projectList.classList.remove('hide');
-                     projectList.removeAttribute('aria-hidden');
-                 }
-                 this._fade(LHB, true);
-                 ProjectApp.swiperFx.hideAll();
-                 ProjectApp.eventHandlers.cleanupSharedListeners();
-                 if (ProjectApp.listModule?.ensureListInit) ProjectApp.listModule.ensureListInit();
-                 ProjectApp.eventHandlers.setupSharedListeners();
-                 ProjectApp.state.currentView = 'list';
-             } else {
-                 if (ProjectApp.state?.currentView === 'list') {
-                     if (ProjectApp.listModule?.animateOutCurrentItems) {
-                         await ProjectApp.listModule.animateOutCurrentItems(true);
-                         await new Promise(r => setTimeout(r, 100));
-                     }
-                 }
-                 if (projectCollection) projectCollection.classList.add('is--hidden');
-                 if (swipersContainer) swipersContainer.classList.remove('is--hidden');
-                 if (projectList) {
-                     projectList.classList.add('hide');
-                     projectList.setAttribute('aria-hidden', 'true');
-                 }
-                 if (ProjectApp.listModule?.cleanupInfiniteScroll) ProjectApp.listModule.cleanupInfiniteScroll();
+                if (mode === 'list') {
+                    if (ProjectApp.state?.currentView === 'swiper') {
+                        const vis = ProjectApp.swiperFx.getVisible();
+                        if (vis) {
+                            await ProjectApp.swiperFx.animateOut(vis);
+                            await new Promise(r => setTimeout(r, HIDE_DELAY_MS));
+                            ProjectApp.swiperFx.hide(vis);
+                        }
+                    }
+                    if (projectCollection) projectCollection.classList.remove('is--hidden');
+                    if (swipersContainer) swipersContainer.classList.add('is--hidden');
+                    if (projectList) {
+                        projectList.classList.remove('hide');
+                        projectList.removeAttribute('aria-hidden');
+                    }
+                    this._fade(LHB, true);
+                    ProjectApp.swiperFx.hideAll();
+                    ProjectApp.eventHandlers.cleanupSharedListeners();
+                    if (ProjectApp.listModule?.ensureListInit) ProjectApp.listModule.ensureListInit();
+                    ProjectApp.eventHandlers.setupSharedListeners();
+                    ProjectApp.state.currentView = 'list';
+                } else {
+                    if (ProjectApp.state?.currentView === 'list') {
+                        if (ProjectApp.listModule?.animateOutCurrentItems) {
+                            await ProjectApp.listModule.animateOutCurrentItems(true);
+                            await new Promise(r => setTimeout(r, 100));
+                        }
+                    }
+                    if (projectCollection) projectCollection.classList.add('is--hidden');
+                    if (swipersContainer) swipersContainer.classList.remove('is--hidden');
+                    if (projectList) {
+                        projectList.classList.add('hide');
+                        projectList.setAttribute('aria-hidden', 'true');
+                    }
+                    if (ProjectApp.listModule?.cleanupInfiniteScroll) ProjectApp.listModule.cleanupInfiniteScroll();
 
-                 const category = ProjectApp.state?.currentCategory || 'all';
-                 if (ProjectApp.swiperModule?.switchToCategory) {
-                     await ProjectApp.swiperModule.switchToCategory(category);
-                 }
+                    const category = ProjectApp.state?.currentCategory || 'all';
+                    if (ProjectApp.swiperModule?.switchToCategory) {
+                        await ProjectApp.swiperModule.switchToCategory(category);
+                    }
 
-                 const currentSwiper =
-                     document.querySelector('.swipers-container .swiper.is--visible, .swipers-container .swiper[data-active="1"]')
-                     || document.querySelector(`.swipers-container .swiper[data-category="${category}"]`)
-                     || document.querySelector('.swipers-container .swiper');
+                    const currentSwiper =
+                        document.querySelector('.swipers-container .swiper.is--visible, .swipers-container .swiper[data-active="1"]')
+                        || document.querySelector(`.swipers-container .swiper[data-category="${category}"]`)
+                        || document.querySelector('.swipers-container .swiper');
 
-                 if (currentSwiper) {
-                     ProjectApp.swiperFx.setVisible(currentSwiper);
-                     ProjectApp.visibleCleaner.scheduleFor(currentSwiper, 0);
-                 }
+                    if (currentSwiper) {
+                        ProjectApp.swiperFx.setVisible(currentSwiper);
+                        ProjectApp.visibleCleaner.scheduleFor(currentSwiper, 0);
+                    }
 
-                 this._fade(LHB, false);
-                 this.bindRevealOnSwipers();
-                 ProjectApp.eventHandlers.setupSharedListeners();
-                 ProjectApp.state.currentView = 'swiper';
-             }
-         } finally {
-             ProjectApp.uiLock?.unlock();
-         }
-     },
+                    this._fade(LHB, false);
+                    this.bindRevealOnSwipers();
+                    ProjectApp.eventHandlers.setupSharedListeners();
+                    ProjectApp.state.currentView = 'swiper';
+                }
+            } finally {
+                ProjectApp.uiLock?.unlock();
+            }
+        },
 
-     bindRevealOnSwipers() {
-         const containers = Array.from(document.querySelectorAll('.swipers-container .swiper'));
-         containers.forEach(swiperEl => {
-             const inst = swiperEl && swiperEl.swiper;
-             if (!inst || inst._revealBound) return;
-             inst._revealBound = true;
-             inst.on('init', () => {
-             });
-             inst.on('slideChangeTransitionStart', () => {
-             });
-         });
-     },
+        bindRevealOnSwipers() {
+            const containers = Array.from(document.querySelectorAll('.swipers-container .swiper'));
+            containers.forEach(swiperEl => {
+                const inst = swiperEl && swiperEl.swiper;
+                if (!inst || inst._revealBound) return;
+                inst._revealBound = true;
+                inst.on('init', () => {
+                });
+                inst.on('slideChangeTransitionStart', () => {
+                });
+            });
+        },
 
-     revealCurrentActive(forceReset = false) {
-         const visibleSwiper = document.querySelector('.swiper.is--visible') || document.querySelector('.swipers-container .swiper');
-         if (!visibleSwiper) return Promise.resolve();
-         const inst = visibleSwiper.swiper;
-         const active = inst ? inst.slides[inst.activeIndex] : visibleSwiper.querySelector('.swiper-slide-active, .is--active-logical');
-         if (!active) return Promise.resolve();
-         if (forceReset) ProjectApp.slideHelpers.setSlideBaseline(active);
-         return ProjectApp.slideHelpers.revealSlide(active, 0.8);
-     },
+        revealCurrentActive(forceReset = false) {
+            const visibleSwiper = document.querySelector('.swiper.is--visible') || document.querySelector('.swipers-container .swiper');
+            if (!visibleSwiper) return Promise.resolve();
+            const inst = visibleSwiper.swiper;
+            const active = inst ? inst.slides[inst.activeIndex] : visibleSwiper.querySelector('.swiper-slide-active, .is--active-logical');
+            if (!active) return Promise.resolve();
+            if (forceReset) ProjectApp.slideHelpers.setSlideBaseline(active);
+            return ProjectApp.slideHelpers.revealSlide(active, 0.8);
+        },
 
-     animateOutListBackground() {
-         return Promise.resolve();
-     },
-     animateInListBackground() {
-         return Promise.resolve();
-     },
-     animateOutSwiperToBaseline() {
-         const vis = ProjectApp.swiperFx.getVisible();
-         return vis ? ProjectApp.swiperFx.animateOut(vis) : Promise.resolve();
-     },
+        animateOutListBackground() {
+            return Promise.resolve();
+        },
+        animateInListBackground() {
+            return Promise.resolve();
+        },
+        animateOutSwiperToBaseline() {
+            const vis = ProjectApp.swiperFx.getVisible();
+            return vis ? ProjectApp.swiperFx.animateOut(vis) : Promise.resolve();
+        },
 
-     initSwitchAnimation() {
-         ProjectApp.viewSwitcher.cleanupSwitchAnimation();
-         ProjectApp.state.switchAnim.modeBlock = document.querySelector('.mode-block');
-         ProjectApp.state.switchAnim.filterButtons = Array.from(document.querySelectorAll('.filter-item'));
-         ProjectApp.state.switchAnim.optionBlocks = Array.from(document.querySelectorAll('.option-item'));
+        initSwitchAnimation() {
+            ProjectApp.viewSwitcher.cleanupSwitchAnimation();
+            ProjectApp.state.switchAnim.modeBlock = document.querySelector('.mode-block');
+            ProjectApp.state.switchAnim.filterButtons = Array.from(document.querySelectorAll('.filter-item'));
+            ProjectApp.state.switchAnim.optionBlocks = Array.from(document.querySelectorAll('.option-item'));
 
-         if (ProjectApp.state.switchAnim.modeBlock) {
-             const onModeClick = () => {
-                 if (ProjectApp.uiLock?.isLocked()) return;
-                 ProjectApp.state.switchAnim.modeBlock.classList.toggle('is--active');
-             };
-             ProjectApp.viewSwitcher.addTrackedListener(ProjectApp.state.switchAnim.modeBlock, 'click', onModeClick);
-         }
+            if (ProjectApp.state.switchAnim.modeBlock) {
+                const onModeClick = () => {
+                    ProjectApp.state.switchAnim.modeBlock.classList.toggle('is--active');
+                    const isActive = ProjectApp.state.switchAnim.modeBlock.classList.contains('is--active');
 
-         ProjectApp.state.switchAnim.filterButtons.forEach((btn) => {
-             const onFilterClick = () => {
-                 if (!ProjectApp.uiLock?.isLocked()) {
-                 }
-             };
-             ProjectApp.viewSwitcher.addTrackedListener(btn, 'click', onFilterClick);
-         });
+                    const backgroundVideoBlocks = document.querySelectorAll('.background-video-block');
+                    const backgroundBlocks = document.querySelectorAll('.background-block');
 
-         ProjectApp.state.switchAnim.optionBlocks.forEach((opt) => {
-             const onOptionClick = () => {
-                 if (ProjectApp.uiLock?.isLocked()) return;
-                 if (!opt.classList.contains('is--active')) {
-                     ProjectApp.state.switchAnim.optionBlocks.forEach(b => b.classList.remove('is--active'));
-                     opt.classList.add('is--active');
-                     if (opt.hasAttribute('data-list')) ProjectApp.viewSwitcher.switchView('list');
-                     else ProjectApp.viewSwitcher.switchView('swiper');
-                 }
-             };
-             ProjectApp.viewSwitcher.addTrackedListener(opt, 'click', onOptionClick);
-         });
-     },
+                    if (ProjectApp.state.switchAnim.videoTimeouts) {
+                        ProjectApp.state.switchAnim.videoTimeouts.forEach(timeout => clearTimeout(timeout));
+                        ProjectApp.state.switchAnim.videoTimeouts = [];
+                    } else {
+                        ProjectApp.state.switchAnim.videoTimeouts = [];
+                    }
 
-     cleanupSwitchAnimation() {
-         ProjectApp.state = ProjectApp.state || {switchAnim: {listeners: []}};
-         (ProjectApp.state.switchAnim.listeners || []).forEach(({target, type, handler, options}) => {
-             try {
-                 target.removeEventListener(type, handler, options);
-             } catch (e) {
-             }
-         });
-         ProjectApp.state.switchAnim.listeners = [];
-         ProjectApp.state.switchAnim.modeBlock = null;
-         ProjectApp.state.switchAnim.filterButtons = [];
-         ProjectApp.state.switchAnim.optionBlocks = [];
-     },
+                    backgroundVideoBlocks.forEach(videoBlock => {
+                        videoBlock.classList.toggle('is--on', isActive);
 
-     addTrackedListener(target, type, handler, options) {
-         if (!target) return;
-         target.addEventListener(type, handler, options || false);
-         ProjectApp.state.switchAnim.listeners.push({target, type, handler, options: options || false});
-     }
-     };
+                        const video = videoBlock.querySelector('video');
+                        if (video) {
+                            if (isActive) {
+                                video.setAttribute('autoplay', 'autoplay');
+                                video.play().catch(e => console.log('Video play failed:', e));
+                            } else {
+                                const timeout = setTimeout(() => {
+                                    video.removeAttribute('autoplay');
+                                    video.pause();
+                                    video.currentTime = 0;
+                                }, 1200);
+
+                                ProjectApp.state.switchAnim.videoTimeouts.push(timeout);
+                            }
+                        }
+                    });
+
+                    backgroundBlocks.forEach(block => {
+                        block.classList.toggle('is--on', isActive);
+
+                        const video = block.querySelector('video');
+                        if (video) {
+                            if (isActive) {
+                                video.setAttribute('autoplay', 'autoplay');
+                                video.play().catch(e => console.log('Video play failed:', e));
+                            } else {
+                                const timeout = setTimeout(() => {
+                                    video.removeAttribute('autoplay');
+                                    video.pause();
+                                    video.currentTime = 0;
+                                }, 1200);
+
+                                ProjectApp.state.switchAnim.videoTimeouts.push(timeout);
+                            }
+                        }
+                    });
+                };
+
+                ProjectApp.viewSwitcher.addTrackedListener(ProjectApp.state.switchAnim.modeBlock, 'click', onModeClick);
+            }
+
+            ProjectApp.state.switchAnim.filterButtons.forEach((btn) => {
+                const onFilterClick = () => {
+                    if (!btn.classList.contains('is--active')) {
+                        ProjectApp.state.switchAnim.filterButtons.forEach(b => b.classList.remove('is--active'));
+                        btn.classList.add('is--active');
+                    }
+                };
+                ProjectApp.viewSwitcher.addTrackedListener(btn, 'click', onFilterClick);
+            });
+
+            ProjectApp.state.switchAnim.optionBlocks.forEach((opt) => {
+                const onOptionClick = () => {
+                    if (!opt.classList.contains('is--active')) {
+                        ProjectApp.state.switchAnim.optionBlocks.forEach(b => b.classList.remove('is--active'));
+                        opt.classList.add('is--active');
+                        if (opt.hasAttribute('data-list')) {
+                            ProjectApp.viewSwitcher.switchView('list');
+                        } else {
+                            ProjectApp.viewSwitcher.switchView('swiper');
+                        }
+                    }
+                };
+                ProjectApp.viewSwitcher.addTrackedListener(opt, 'click', onOptionClick);
+            });
+
+            ProjectApp.viewSwitcher.initializeVideoStates();
+        },
+
+        initializeVideoStates() {
+            const backgroundVideoBlocks = document.querySelectorAll('.background-video-block');
+            const backgroundBlocks = document.querySelectorAll('.background-block');
+
+            [...backgroundVideoBlocks, ...backgroundBlocks].forEach(block => {
+                const video = block.querySelector('video');
+                if (video) {
+                    if (!block.classList.contains('is--on')) {
+                        video.removeAttribute('autoplay');
+                        video.pause();
+                        video.currentTime = 0;
+                    }
+                }
+            });
+        },
+
+        cleanupSwitchAnimation() {
+            if (ProjectApp.state.switchAnim.videoTimeouts) {
+                ProjectApp.state.switchAnim.videoTimeouts.forEach(timeout => clearTimeout(timeout));
+                ProjectApp.state.switchAnim.videoTimeouts = [];
+            }
+
+            ProjectApp.state.switchAnim.listeners.forEach(({target, type, handler, options}) => {
+                try { target.removeEventListener(type, handler, options); } catch(e) {}
+            });
+            ProjectApp.state.switchAnim.listeners = [];
+            ProjectApp.state.switchAnim.modeBlock = null;
+            ProjectApp.state.switchAnim.filterButtons = [];
+            ProjectApp.state.switchAnim.optionBlocks = [];
+        },
+
+        addTrackedListener(target, type, handler, options) {
+            target.addEventListener(type, handler, options || false);
+            ProjectApp.state.switchAnim.listeners.push({ target, type, handler, options: options || false });
+        }
+    };
 
     // ARCHIVE PAGE
     ProjectApp.archivePageModule = {
