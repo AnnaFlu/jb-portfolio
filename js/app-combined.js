@@ -1326,10 +1326,10 @@
 
     // SWIPER SWITCH
 
-    window.ProjectApp = window.ProjectApp || {};
-    ProjectApp.state = ProjectApp.state || {};
-    ProjectApp.animations = ProjectApp.animations || {};
-    ProjectApp.utils = ProjectApp.utils || {};
+    // window.ProjectApp = window.ProjectApp || {};
+    // ProjectApp.state = ProjectApp.state || {};
+    // ProjectApp.animations = ProjectApp.animations || {};
+    // ProjectApp.utils = ProjectApp.utils || {};
 
     const HIDE_DELAY_MS = 100;
 
