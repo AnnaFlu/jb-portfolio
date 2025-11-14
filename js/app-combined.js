@@ -1,7 +1,4 @@
- // ============================================
-    // STATE
-    // ============================================
-    window.ProjectApp = {
+window.ProjectApp = {
     state: {
     cachedItemHeight: null,
     scrollInitialized: false,
@@ -23,10 +20,11 @@
     isScrolling: false,
     scrollTimeout: null
 },
-
     utils: {},
     templateManager: {},
     listModule: {},
+    slideAnimations: {},
+    slidePresets: {},
     swiperModule: {},
     filterModule: {},
     animations: {},
@@ -49,10 +47,7 @@
      CustomEase.create("transitionEase", "0.75, 0, 0, 1");
     }
 
-    // ============================================
-    // UTILITIES
-    // ============================================
-    ProjectApp.utils = {
+    /*    ProjectApp.utils = {
     norm(str) {
     return (str || '').trim().toLowerCase();
 },
@@ -165,10 +160,115 @@
 }
 });
 }
-};
+};*/
+    ProjectApp.utils = {
+     norm(str) {
+         return (str || '').trim().toLowerCase();
+     },
 
- // TIMELINE MODULE
- ProjectApp.timeline = {
+     isElementActuallyHidden(el) {
+         if (!el) return true;
+         const s = getComputedStyle(el);
+         if (s.display === 'none' || s.visibility === 'hidden' || s.opacity === '0') return true;
+         if (!el.offsetParent && s.position !== 'fixed') return true;
+         return false;
+     },
+
+     withTemporarilyShown(el, fn) {
+         if (!el) return;
+         const prev = {
+             display: el.style.display,
+             visibility: el.style.visibility,
+             position: el.style.position,
+             left: el.style.left,
+             top: el.style.top,
+             pointerEvents: el.style.pointerEvents
+         };
+         const needsTemp = ProjectApp.utils.isElementActuallyHidden(el);
+         if (needsTemp) {
+             el.style.visibility = 'hidden';
+             el.style.position = 'absolute';
+             el.style.left = '-99999px';
+             el.style.top = '-99999px';
+             el.style.pointerEvents = 'none';
+             el.style.display = 'block';
+         }
+         try {
+             fn();
+         } finally {
+             if (needsTemp) {
+                 el.style.display = prev.display;
+                 el.style.visibility = prev.visibility;
+                 el.style.position = prev.position;
+                 el.style.left = prev.left;
+                 el.style.top = prev.top;
+                 el.style.pointerEvents = prev.pointerEvents;
+             }
+         }
+     },
+
+     measureItemHeight(templates, projectList) {
+         if (!templates.length) return 0;
+         const probe = templates[0].cloneNode(true);
+         probe.style.position = 'absolute';
+         probe.style.left = '-99999px';
+         probe.style.top = '-99999px';
+         probe.style.visibility = 'hidden';
+         probe.style.width = '100%';
+         projectList.appendChild(probe);
+         const h = probe.getBoundingClientRect().height;
+         probe.remove();
+         return h;
+     },
+
+     waitForImages(container) {
+         const images = Array.from(container.querySelectorAll('img'));
+         const imgPromises = images.map(img => {
+             if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+             return new Promise(res => {
+                 const done = () => res();
+                 img.addEventListener('load', done, {once: true});
+                 img.addEventListener('error', done, {once: true});
+                 setTimeout(done, 500);
+             });
+         });
+         return Promise.all(imgPromises);
+     },
+
+     waitFor(testFn, timeoutMs, intervalMs) {
+         return new Promise((resolve) => {
+             const start = Date.now();
+             const iv = setInterval(() => {
+                 let ok = false;
+                 try { ok = !!testFn(); } catch (e) { ok = false; }
+                 if (ok) { clearInterval(iv); resolve(true); return; }
+                 if (Date.now() - start > (timeoutMs || 3000)) { clearInterval(iv); resolve(false); }
+             }, intervalMs || 50);
+         });
+     },
+
+     prepareVideos(container) {
+         const videos = container.querySelectorAll('video');
+         videos.forEach(video => {
+             video.preload = 'metadata';
+             video.setAttribute('loading', 'lazy');
+             if ('IntersectionObserver' in window) {
+                 const observer = new IntersectionObserver((entries) => {
+                     entries.forEach(entry => {
+                         if (entry.isIntersecting) {
+                             video.preload = 'auto';
+                             observer.unobserve(video);
+                         }
+                     });
+                 }, { rootMargin: '50px' });
+                 observer.observe(video);
+             }
+         });
+     }
+ };
+
+    // TIMELINE MODULE
+    ProjectApp.timeline = {
      initTimeline() {
          ProjectApp.timeline.cleanupTimeline();
 
@@ -239,8 +339,8 @@
      }
  };
 
- // CREDITS HOVER
- ProjectApp.pageAnimations = {
+    // CREDITS HOVER
+    ProjectApp.pageAnimations = {
      initCreatorHover() {
          const creatorBlock = document.querySelector('.creator-block');
          const creatorLinks = document.querySelectorAll('.creator-link');
@@ -283,9 +383,7 @@
      }
  };
 
-    // ============================================
     // SWIPER ANIMATIONS
-    // ============================================
     (function () {
     const hasGSAP = () => typeof window !== 'undefined' && !!window.gsap;
     const reduceMotion = () =>
@@ -1073,9 +1171,7 @@
 }
 };
 
-    // ============================================
     // LIST MODULE
-    // ============================================
     ProjectApp.listModule = {
     animateOutCurrentItems: function(animateDividers = false) {
     return new Promise((resolve) => {
@@ -1344,906 +1440,596 @@
 }
 };
 
-    //if(window.ProjectApp && ProjectApp.bootstrap) ProjectApp.bootstrap();
+    // SWIPER SWITCH
 
-
-    // ============================================
-    // SWITCH PAGE MODULE
-    // ============================================
     // window.ProjectApp = window.ProjectApp || {};
     // ProjectApp.state = ProjectApp.state || {};
     // ProjectApp.animations = ProjectApp.animations || {};
     // ProjectApp.utils = ProjectApp.utils || {};
 
-//    const HIDE_DELAY_MS = 100;
+    const HIDE_DELAY_MS = 100;
 
-//     if (ProjectApp.state.currentView == null) ProjectApp.state.currentView = 'list';
-//     if (ProjectApp.state.currentCategory == null) ProjectApp.state.currentCategory = 'all';
-//     if (!ProjectApp.state.switchAnim) ProjectApp.state.switchAnim = {listeners: []};
-//
-//     ProjectApp.utils.norm = ProjectApp.utils.norm || function (s) {
-//     return String(s || '').toLowerCase().trim();
-// };
-//     ProjectApp.utils.withTemporarilyShown = ProjectApp.utils.withTemporarilyShown || function (el, fn) {
-//     if (!el) return fn && fn();
-//     const wasNone = getComputedStyle(el).display === 'none' || el.classList.contains('is--hidden');
-//     const prev = { display: el.style.display, visibility: el.style.visibility, pointerEvents: el.style.pointerEvents };
-//     if (wasNone) {
-//     el.classList.remove('is--hidden');
-//     el.style.display = 'block';
-//     el.style.visibility = 'hidden';
-//     el.style.pointerEvents = 'none';
-// }
-//     try { return fn && fn(); } finally {
-//     if (wasNone) {
-//     el.style.display = prev.display || '';
-//     el.style.visibility = prev.visibility || '';
-//     el.style.pointerEvents = prev.pointerEvents || '';
-//     el.classList.add('is--hidden');
-// }
-// }
-// };
-//     ProjectApp.utils.measureItemHeight = ProjectApp.utils.measureItemHeight || function(templates, listEl){
-//     const tmp = document.createElement('div');
-//     tmp.style.position = 'absolute';
-//     tmp.style.left = '-99999px';
-//     tmp.style.top = '0';
-//     tmp.style.width = (listEl && listEl.clientWidth ? listEl.clientWidth : 1000) + 'px';
-//     document.body.appendChild(tmp);
-//     const first = templates && templates[0] ? templates[0].cloneNode(true) : null;
-//     if (!first){ document.body.removeChild(tmp); return 120; }
-//     tmp.appendChild(first);
-//     const h = Math.max(1, first.offsetHeight || 0);
-//     document.body.removeChild(tmp);
-//     return h;
-// };
+    if (ProjectApp.state.currentView == null) ProjectApp.state.currentView = 'list';
+    if (ProjectApp.state.currentCategory == null) ProjectApp.state.currentCategory = 'all';
+    if (!ProjectApp.state.switchAnim) ProjectApp.state.switchAnim = {listeners: []};
+
+    ProjectApp.utils.norm = ProjectApp.utils.norm || function (s) {
+     return String(s || '').toLowerCase().trim();
+ };
+    ProjectApp.utils.withTemporarilyShown = ProjectApp.utils.withTemporarilyShown || function (el, fn) {
+     if (!el) return fn && fn();
+     const wasNone = getComputedStyle(el).display === 'none' || el.classList.contains('is--hidden');
+     const prev = { display: el.style.display, visibility: el.style.visibility, pointerEvents: el.style.pointerEvents };
+     if (wasNone) {
+         el.classList.remove('is--hidden');
+         el.style.display = 'block';
+         el.style.visibility = 'hidden';
+         el.style.pointerEvents = 'none';
+     }
+     try { return fn && fn(); } finally {
+         if (wasNone) {
+             el.style.display = prev.display || '';
+             el.style.visibility = prev.visibility || '';
+             el.style.pointerEvents = prev.pointerEvents || '';
+             el.classList.add('is--hidden');
+         }
+     }
+ };
+    ProjectApp.utils.measureItemHeight = ProjectApp.utils.measureItemHeight || function(templates, listEl){
+     const tmp = document.createElement('div');
+     tmp.style.position = 'absolute';
+     tmp.style.left = '-99999px';
+     tmp.style.top = '0';
+     tmp.style.width = (listEl && listEl.clientWidth ? listEl.clientWidth : 1000) + 'px';
+     document.body.appendChild(tmp);
+     const first = templates && templates[0] ? templates[0].cloneNode(true) : null;
+     if (!first){ document.body.removeChild(tmp); return 120; }
+     tmp.appendChild(first);
+     const h = Math.max(1, first.offsetHeight || 0);
+     document.body.removeChild(tmp);
+     return h;
+ };
 
     ProjectApp.templateManager = (function (prev) {
-    const tm = prev || {};
-    tm.captureListTemplatesOnce = tm.captureListTemplatesOnce || function () {
-    if (ProjectApp.state.listTemplates && ProjectApp.state.listTemplates.length) return;
-    const projectList = document.querySelector('.project-list');
-    if (!projectList) return;
-    if (!ProjectApp.state.listTemplates) ProjectApp.state.listTemplates = [];
-    ProjectApp.utils.withTemporarilyShown(projectList, () => {
-    const originals = Array.from(projectList.querySelectorAll('.project-item'));
-    ProjectApp.state.listTemplates = originals.map(n => n.cloneNode(true));
-});
-};
-    tm.getItemCategory = tm.getItemCategory || function (el) {
-    const raw = el.getAttribute('filter') ?? el.getAttribute('data-filter') ?? '';
-    return ProjectApp.utils.norm(raw || 'all');
-};
-    tm.matchesCurrentCategory = function (el, category) {
-    const current = ProjectApp.utils.norm(category != null ? category : (ProjectApp.state.currentCategory || 'all'));
-    if (current === 'all') return true;
-    return ProjectApp.templateManager.getItemCategory(el) === current;
-};
-    tm.getFilteredListTemplates = function (category) {
-    this.captureListTemplatesOnce();
-    const list = ProjectApp.state.listTemplates || [];
-    return list.filter(el => this.matchesCurrentCategory(el, category));
-};
-    tm.getAllListTemplates = tm.getAllListTemplates || function () {
-    this.captureListTemplatesOnce();
-    return (ProjectApp.state.listTemplates || []).slice();
-};
-    return tm;
-})(ProjectApp.templateManager);
+     const tm = prev || {};
+     tm.captureListTemplatesOnce = tm.captureListTemplatesOnce || function () {
+         if (ProjectApp.state.listTemplates && ProjectApp.state.listTemplates.length) return;
+         const projectList = document.querySelector('.project-list');
+         if (!projectList) return;
+         if (!ProjectApp.state.listTemplates) ProjectApp.state.listTemplates = [];
+         ProjectApp.utils.withTemporarilyShown(projectList, () => {
+             const originals = Array.from(projectList.querySelectorAll('.project-item'));
+             ProjectApp.state.listTemplates = originals.map(n => n.cloneNode(true));
+         });
+     };
+     tm.getItemCategory = tm.getItemCategory || function (el) {
+         const raw = el.getAttribute('filter') ?? el.getAttribute('data-filter') ?? '';
+         return ProjectApp.utils.norm(raw || 'all');
+     };
+     tm.matchesCurrentCategory = function (el, category) {
+         const current = ProjectApp.utils.norm(category != null ? category : (ProjectApp.state.currentCategory || 'all'));
+         if (current === 'all') return true;
+         return ProjectApp.templateManager.getItemCategory(el) === current;
+     };
+     tm.getFilteredListTemplates = function (category) {
+         this.captureListTemplatesOnce();
+         const list = ProjectApp.state.listTemplates || [];
+         return list.filter(el => this.matchesCurrentCategory(el, category));
+     };
+     tm.getAllListTemplates = tm.getAllListTemplates || function () {
+         this.captureListTemplatesOnce();
+         return (ProjectApp.state.listTemplates || []).slice();
+     };
+     return tm;
+ })(ProjectApp.templateManager);
 
     ProjectApp.uiLock = (() => {
-    let depth = 0;
-    function setDisabled(disabled) {
-    const nodes = document.querySelectorAll('.filter-item, .option-item, .mode-block');
-    nodes.forEach((el) => {
-    el.classList.toggle('is--disabled', disabled);
-    el.style.pointerEvents = disabled ? 'none' : '';
-    el.setAttribute('aria-disabled', disabled ? 'true' : 'false');
-    if (disabled) {
-    el.dataset._tabindex = el.getAttribute('tabindex') ?? '';
-    el.setAttribute('tabindex', '-1');
-} else {
-    const prev = el.dataset._tabindex;
-    if (prev !== undefined) {
-    if (prev === '') el.removeAttribute('tabindex');
-    else el.setAttribute('tabindex', prev);
-    delete el.dataset._tabindex;
-}
-}
-});
-}
-    return {
-    lock()   { if (++depth === 1) setDisabled(true); },
-    unlock() { depth = Math.max(0, depth - 1); if (depth === 0) setDisabled(false); },
-    isLocked(){ return depth > 0; }
-};
-})();
+     let depth = 0;
+     function setDisabled(disabled) {
+         const nodes = document.querySelectorAll('.filter-item, .option-item, .mode-block');
+         nodes.forEach((el) => {
+             el.classList.toggle('is--disabled', disabled);
+             el.style.pointerEvents = disabled ? 'none' : '';
+             el.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+             if (disabled) {
+                 el.dataset._tabindex = el.getAttribute('tabindex') ?? '';
+                 el.setAttribute('tabindex', '-1');
+             } else {
+                 const prev = el.dataset._tabindex;
+                 if (prev !== undefined) {
+                     if (prev === '') el.removeAttribute('tabindex');
+                     else el.setAttribute('tabindex', prev);
+                     delete el.dataset._tabindex;
+                 }
+             }
+         });
+     }
+     return {
+         lock()   { if (++depth === 1) setDisabled(true); },
+         unlock() { depth = Math.max(0, depth - 1); if (depth === 0) setDisabled(false); },
+         isLocked(){ return depth > 0; }
+     };
+ })();
 
     ProjectApp.filterCooldown = (() => {
-    let until = 0, timer = null;
-    function applyDisabled(disabled) {
-    const btns = document.querySelectorAll('.filter-item');
-    btns.forEach(b => {
-    b.classList.toggle('is--disabled', disabled);
-    b.setAttribute('aria-disabled', disabled ? 'true' : 'false');
-    b.style.pointerEvents = disabled ? 'none' : '';
-    if (disabled) {
-    b.dataset._tabindex = b.getAttribute('tabindex') ?? '';
-    b.setAttribute('tabindex', '-1');
-} else {
-    const prev = b.dataset._tabindex;
-    if (prev !== undefined) {
-    if (prev === '') b.removeAttribute('tabindex'); else b.setAttribute('tabindex', prev);
-    delete b.dataset._tabindex;
-}
-}
-});
-}
-    function isActive() { return Date.now() < until; }
-    function start(ms = 50) {
-    until = Date.now() + ms;
-    clearTimeout(timer);
-    applyDisabled(true);
-    timer = setTimeout(() => { if (!isActive()) applyDisabled(false); }, ms + 5);
-}
-    function cancel() { until = 0; clearTimeout(timer); applyDisabled(false); }
-    return { isActive, start, cancel };
-})();
+     let until = 0, timer = null;
+     function applyDisabled(disabled) {
+         const btns = document.querySelectorAll('.filter-item');
+         btns.forEach(b => {
+             b.classList.toggle('is--disabled', disabled);
+             b.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+             b.style.pointerEvents = disabled ? 'none' : '';
+             if (disabled) {
+                 b.dataset._tabindex = b.getAttribute('tabindex') ?? '';
+                 b.setAttribute('tabindex', '-1');
+             } else {
+                 const prev = b.dataset._tabindex;
+                 if (prev !== undefined) {
+                     if (prev === '') b.removeAttribute('tabindex'); else b.setAttribute('tabindex', prev);
+                     delete b.dataset._tabindex;
+                 }
+             }
+         });
+     }
+     function isActive() { return Date.now() < until; }
+     function start(ms = 50) {
+         until = Date.now() + ms;
+         clearTimeout(timer);
+         applyDisabled(true);
+         timer = setTimeout(() => { if (!isActive()) applyDisabled(false); }, ms + 5);
+     }
+     function cancel() { until = 0; clearTimeout(timer); applyDisabled(false); }
+     return { isActive, start, cancel };
+ })();
 
     ProjectApp.slideHelpers = {
-    _CLIP_FULL: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
-    _CLIP_BASE: 'polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)',
-    _CLIP_TOP:  'polygon(0 0%, 100% 0%, 100% 0%, 0 0%)',
-    _CLIP_BOT:  'polygon(0 100%, 100% 100%, 100% 100%, 0% 100%)',
+     _CLIP_FULL: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+     _CLIP_BASE: 'polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)',
+     _CLIP_TOP:  'polygon(0 0%, 100% 0%, 100% 0%, 0 0%)',
+     _CLIP_BOT:  'polygon(0 100%, 100% 100%, 100% 100%, 0% 100%)',
 
-    setSlideBaseline(slide) {
-    if (!slide || !window.gsap) return;
-    const gs = gsap;
-    const projectBlocks = slide.querySelectorAll('.project-block');
-    the_bg = slide.querySelectorAll('.background-video-block');
-    const previewBottom = slide.querySelectorAll('.preview-block.is--bottom');
-    const previewTop    = slide.querySelectorAll('.preview-block.is--top');
-    const nameLeftLines = slide.querySelectorAll('.name-wrapper.has--align-left');
-    const nameRightLines= slide.querySelectorAll('.name-wrapper.has--align-right');
+     setSlideBaseline(slide) {
+         if (!slide || !window.gsap) return;
+         const gs = gsap;
+         const projectBlocks = slide.querySelectorAll('.project-block');
+         the_bg = slide.querySelectorAll('.background-video-block');
+         const previewBottom = slide.querySelectorAll('.preview-block.is--bottom');
+         const previewTop    = slide.querySelectorAll('.preview-block.is--top');
+         const nameLeftLines = slide.querySelectorAll('.name-wrapper.has--align-left');
+         const nameRightLines= slide.querySelectorAll('.name-wrapper.has--align-right');
 
-    if (projectBlocks.length) gs.set(projectBlocks, { clipPath: this._CLIP_BASE });
-    if (the_bg.length)        gs.set(the_bg,        { clipPath: this._CLIP_BASE });
-    if (previewTop.length)    gs.set(previewTop,    { clipPath: this._CLIP_TOP  });
-    if (previewBottom.length) gs.set(previewBottom, { clipPath: this._CLIP_BOT  });
+         if (projectBlocks.length) gs.set(projectBlocks, { clipPath: this._CLIP_BASE });
+         if (the_bg.length)        gs.set(the_bg,        { clipPath: this._CLIP_BASE });
+         if (previewTop.length)    gs.set(previewTop,    { clipPath: this._CLIP_TOP  });
+         if (previewBottom.length) gs.set(previewBottom, { clipPath: this._CLIP_BOT  });
 
-    if (nameLeftLines.length)  gs.set(nameLeftLines,  { opacity: 0 });
-    if (nameRightLines.length) gs.set(nameRightLines, { opacity: 0 });
-},
+         if (nameLeftLines.length)  gs.set(nameLeftLines,  { opacity: 0 });
+         if (nameRightLines.length) gs.set(nameRightLines, { opacity: 0 });
+     },
 
-    revealSlide(slide, duration = 0.8) {
-    if (!slide || !window.gsap) return Promise.resolve();
-    const ez = 'headingHoverEase';
-    const tl = gsap.timeline();
-    const projectBlocks = slide.querySelectorAll('.project-block');
-    const the_bg        = slide.querySelectorAll('.background-video-block');
-    const previewBottom = slide.querySelectorAll('.preview-block.is--bottom');
-    const previewTop    = slide.querySelectorAll('.preview-block.is--top');
-    const nameLeftLines = slide.querySelectorAll('.name-wrapper.has--align-left ');
-    const nameRightLines= slide.querySelectorAll('.name-wrapper.has--align-right');
+     revealSlide(slide, duration = 0.8) {
+         if (!slide || !window.gsap) return Promise.resolve();
+         const ez = 'headingHoverEase';
+         const tl = gsap.timeline();
+         const projectBlocks = slide.querySelectorAll('.project-block');
+         const the_bg        = slide.querySelectorAll('.background-video-block');
+         const previewBottom = slide.querySelectorAll('.preview-block.is--bottom');
+         const previewTop    = slide.querySelectorAll('.preview-block.is--top');
+         const nameLeftLines = slide.querySelectorAll('.name-wrapper.has--align-left ');
+         const nameRightLines= slide.querySelectorAll('.name-wrapper.has--align-right');
 
-    if (projectBlocks.length)  tl.to(projectBlocks,  { clipPath: this._CLIP_FULL, duration, ease: ez }, 0);
-    if (the_bg.length)         tl.to(the_bg,        { clipPath: this._CLIP_FULL, duration, ease: ez }, 0);
-    if (previewBottom.length)  tl.to(previewBottom, { clipPath: this._CLIP_FULL, duration, ease: ez }, 0);
-    if (previewTop.length)     tl.to(previewTop,    { clipPath: this._CLIP_FULL, duration, ease: ez }, 0);
+         if (projectBlocks.length)  tl.to(projectBlocks,  { clipPath: this._CLIP_FULL, duration, ease: ez }, 0);
+         if (the_bg.length)         tl.to(the_bg,        { clipPath: this._CLIP_FULL, duration, ease: ez }, 0);
+         if (previewBottom.length)  tl.to(previewBottom, { clipPath: this._CLIP_FULL, duration, ease: ez }, 0);
+         if (previewTop.length)     tl.to(previewTop,    { clipPath: this._CLIP_FULL, duration, ease: ez }, 0);
 
-    if (nameLeftLines.length)  tl.to(nameLeftLines,  { opacity: 1, duration, ease: ez, willChange: 'opacity' }, 0);
-    if (nameRightLines.length) tl.to(nameRightLines, { opacity: 1, duration, ease: ez, willChange: 'opacity' }, 0);
+         if (nameLeftLines.length)  tl.to(nameLeftLines,  { opacity: 1, duration, ease: ez, willChange: 'opacity' }, 0);
+         if (nameRightLines.length) tl.to(nameRightLines, { opacity: 1, duration, ease: ez, willChange: 'opacity' }, 0);
 
-    tl.add(() => {
-    const clearTargets = [...projectBlocks, ...the_bg, ...previewBottom, ...previewTop, ...nameLeftLines, ...nameRightLines];
-    if (clearTargets.length && window.gsap) {
-    gsap.set(clearTargets, { clearProps: 'clipPath,transform,opacity,filter,willChange,transition' });
-}
-    clearTargets.forEach(el => {
-    el.style.removeProperty('clip-path');
-    el.style.removeProperty('transform');
-    el.style.removeProperty('opacity');
-    el.style.removeProperty('filter');
-    el.style.removeProperty('will-change');
-    el.style.removeProperty('transition');
-    if ((el.getAttribute('style') || '').trim() === '') el.removeAttribute('style');
-});
-}, '+=0.01');
+         tl.add(() => {
+             const clearTargets = [...projectBlocks, ...the_bg, ...previewBottom, ...previewTop, ...nameLeftLines, ...nameRightLines];
+             if (clearTargets.length && window.gsap) {
+                 gsap.set(clearTargets, { clearProps: 'clipPath,transform,opacity,filter,willChange,transition' });
+             }
+             clearTargets.forEach(el => {
+                 el.style.removeProperty('clip-path');
+                 el.style.removeProperty('transform');
+                 el.style.removeProperty('opacity');
+                 el.style.removeProperty('filter');
+                 el.style.removeProperty('will-change');
+                 el.style.removeProperty('transition');
+                 if ((el.getAttribute('style') || '').trim() === '') el.removeAttribute('style');
+             });
+         }, '+=0.01');
 
-    return new Promise(r => tl.eventCallback('onComplete', r));
-},
+         return new Promise(r => tl.eventCallback('onComplete', r));
+     },
 
-    hideToBaseline(slide, duration = 0.8, ease = 'headingHoverEase') {
-    if (!slide || !window.gsap) return Promise.resolve();
+     hideToBaseline(slide, duration = 0.8, ease = 'headingHoverEase') {
+         if (!slide || !window.gsap) return Promise.resolve();
 
-    const tl = gsap.timeline({ defaults: { ease } });
-    const allSlides = [
-    slide,
-    ...slide.parentElement.querySelectorAll('.swiper-slide-prev, .w-dyn-item.__armed')
-    ].filter((el, i, arr) => el && arr.indexOf(el) === i);
+         const tl = gsap.timeline({ defaults: { ease } });
+         const allSlides = [
+             slide,
+             ...slide.parentElement.querySelectorAll('.swiper-slide-prev, .w-dyn-item.__armed')
+         ].filter((el, i, arr) => el && arr.indexOf(el) === i);
 
-    allSlides.forEach((sl) => {
-    const projectBlocks = sl.querySelectorAll('.project-block');
-    const the_bg        = sl.querySelectorAll('.background-video-block');
-    const previewTop    = sl.querySelectorAll('.preview-block.is--top');
-    const previewBottom = sl.querySelectorAll('.preview-block.is--bottom');
-    const nameLeftLines = sl.querySelectorAll('.name-wrapper.has--align-left ');
-    const nameRightLines= sl.querySelectorAll('.name-wrapper.has--align-right ');
+         allSlides.forEach((sl) => {
+             const projectBlocks = sl.querySelectorAll('.project-block');
+             const the_bg        = sl.querySelectorAll('.background-video-block');
+             const previewTop    = sl.querySelectorAll('.preview-block.is--top');
+             const previewBottom = sl.querySelectorAll('.preview-block.is--bottom');
+             const nameLeftLines = sl.querySelectorAll('.name-wrapper.has--align-left ');
+             const nameRightLines= sl.querySelectorAll('.name-wrapper.has--align-right ');
 
-    const media = [...projectBlocks, ...the_bg];
-    const allTargets = [...media, ...previewTop, ...previewBottom, ...nameLeftLines, ...nameRightLines];
+             const media = [...projectBlocks, ...the_bg];
+             const allTargets = [...media, ...previewTop, ...previewBottom, ...nameLeftLines, ...nameRightLines];
 
-    if (allTargets.length) {
-    gsap.killTweensOf(allTargets);
-    gsap.set(allTargets, { transition: 'none' });
-}
+             if (allTargets.length) {
+                 gsap.killTweensOf(allTargets);
+                 gsap.set(allTargets, { transition: 'none' });
+             }
 
-    if (previewTop.length)    gsap.set(previewTop,    { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' });
-    if (previewBottom.length) gsap.set(previewBottom, { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' });
+             if (previewTop.length)    gsap.set(previewTop,    { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' });
+             if (previewBottom.length) gsap.set(previewBottom, { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' });
 
-    tl.addLabel('go', 0);
+             tl.addLabel('go', 0);
 
-    if (media.length)         tl.to(media,         { clipPath: this._CLIP_BASE, duration, ease, lazy: false, overwrite: 'auto', willChange: 'clip-path' }, 'go');
-    if (previewTop.length)    tl.to(previewTop,    { clipPath: this._CLIP_TOP,  duration, ease, lazy: false, overwrite: 'auto', willChange: 'clip-path' }, 'go');
-    if (previewBottom.length) tl.to(previewBottom, { clipPath: this._CLIP_BOT,  duration, ease, lazy: false, overwrite: 'auto', willChange: 'clip-path' }, 'go');
+             if (media.length)         tl.to(media,         { clipPath: this._CLIP_BASE, duration, ease, lazy: false, overwrite: 'auto', willChange: 'clip-path' }, 'go');
+             if (previewTop.length)    tl.to(previewTop,    { clipPath: this._CLIP_TOP,  duration, ease, lazy: false, overwrite: 'auto', willChange: 'clip-path' }, 'go');
+             if (previewBottom.length) tl.to(previewBottom, { clipPath: this._CLIP_BOT,  duration, ease, lazy: false, overwrite: 'auto', willChange: 'clip-path' }, 'go');
 
-    if (nameLeftLines.length)  tl.to(nameLeftLines,  { opacity: 0, duration, ease, lazy: false, overwrite: 'auto', willChange: 'opacity' }, 'go');
-    if (nameRightLines.length) tl.to(nameRightLines, { opacity: 0, duration, ease, lazy: false, overwrite: 'auto', willChange: 'opacity' }, 'go');
+             if (nameLeftLines.length)  tl.to(nameLeftLines,  { opacity: 0, duration, ease, lazy: false, overwrite: 'auto', willChange: 'opacity' }, 'go');
+             if (nameRightLines.length) tl.to(nameRightLines, { opacity: 0, duration, ease, lazy: false, overwrite: 'auto', willChange: 'opacity' }, 'go');
 
-    tl.add(() => {
-    if (allTargets.length) gsap.set(allTargets, { clearProps: 'transition,willChange' });
-}, 'go+=' + duration);
-});
+             tl.add(() => {
+                 if (allTargets.length) gsap.set(allTargets, { clearProps: 'transition,willChange' });
+             }, 'go+=' + duration);
+         });
 
-    return new Promise(r => tl.eventCallback('onComplete', r));
-}
-};
+         return new Promise(r => tl.eventCallback('onComplete', r));
+     }
+ };
 
     ProjectApp.visibleCleaner = (function () {
-    const SELECTORS = [
-    '.project-block',
-    '.background-video-block',
-    '.preview-block.is--top',
-    '.preview-block.is--bottom',
-    '.name-wrapper.has--align-left ',
-    '.name-wrapper.has--align-right '
-    ];
-    const cleaned = new WeakSet();
+     const SELECTORS = [
+         '.project-block',
+         '.background-video-block',
+         '.preview-block.is--top',
+         '.preview-block.is--bottom',
+         '.name-wrapper.has--align-left ',
+         '.name-wrapper.has--align-right '
+     ];
+     const cleaned = new WeakSet();
 
-    function clearInline(el) {
-    if (window.gsap) gsap.set(el, { clearProps: 'clipPath,transform,opacity,filter,willChange,transition' });
-    el.style.removeProperty('clip-path');
-    el.style.removeProperty('transform');
-    el.style.removeProperty('opacity');
-    el.style.removeProperty('filter');
-    el.style.removeProperty('will-change');
-    el.style.removeProperty('transition');
-    if ((el.getAttribute('style') || '').trim() === '') el.removeAttribute('style');
-}
+     function clearInline(el) {
+         if (window.gsap) gsap.set(el, { clearProps: 'clipPath,transform,opacity,filter,willChange,transition' });
+         el.style.removeProperty('clip-path');
+         el.style.removeProperty('transform');
+         el.style.removeProperty('opacity');
+         el.style.removeProperty('filter');
+         el.style.removeProperty('will-change');
+         el.style.removeProperty('transition');
+         if ((el.getAttribute('style') || '').trim() === '') el.removeAttribute('style');
+     }
 
-    function runFor(swiperEl) {
-    if (!swiperEl || cleaned.has(swiperEl)) return;
-    const nodes = SELECTORS.flatMap(sel => Array.from(swiperEl.querySelectorAll(sel)));
-    nodes.forEach(clearInline);
-    cleaned.add(swiperEl);
-}
+     function runFor(swiperEl) {
+         if (!swiperEl || cleaned.has(swiperEl)) return;
+         const nodes = SELECTORS.flatMap(sel => Array.from(swiperEl.querySelectorAll(sel)));
+         nodes.forEach(clearInline);
+         cleaned.add(swiperEl);
+     }
 
-    function scheduleFor(swiperEl, ms = 50) {
-    if (!swiperEl || cleaned.has(swiperEl)) return;
-    setTimeout(() => runFor(swiperEl), ms);
-}
+     function scheduleFor(swiperEl, ms = 50) {
+         if (!swiperEl || cleaned.has(swiperEl)) return;
+         setTimeout(() => runFor(swiperEl), ms);
+     }
 
-    function reset(swiperEl) {
-    if (swiperEl && cleaned.has(swiperEl)) cleaned.delete(swiperEl);
-}
+     function reset(swiperEl) {
+         if (swiperEl && cleaned.has(swiperEl)) cleaned.delete(swiperEl);
+     }
 
-    return {runFor, scheduleFor, reset};
-})();
+     return {runFor, scheduleFor, reset};
+ })();
 
     ProjectApp._revealedActive = ProjectApp._revealedActive || new WeakMap();
 
     ProjectApp.eventHandlers = {
-    setupSharedListeners() {
-    const form = document.querySelector('#email-form');
-    if (form && !form._catHandlerInstalled) {
-    form.addEventListener('change', ProjectApp.eventHandlers.handleRadioChange, true);
-    form._catHandlerInstalled = true;
-}
-    document.addEventListener('click', ProjectApp.eventHandlers.handleClearClick, true);
-    if (!ProjectApp._filterGuardInstalled) {
-    document.addEventListener('click', (e) => {
-    const el = e.target.closest('.filter-item, .option-item, .mode-block');
-    if (!el) return;
-    if (ProjectApp.uiLock?.isLocked()) {
-    e.preventDefault();
-    e.stopPropagation();
-    return;
-}
-    if (el.matches('.filter-item') && ProjectApp.filterCooldown.isActive()) {
-    e.preventDefault();
-    e.stopPropagation();
-    return;
-}
-}, true);
-    ProjectApp._filterGuardInstalled = true;
-}
-},
+     setupSharedListeners() {
+         const form = document.querySelector('#email-form');
+         if (form && !form._catHandlerInstalled) {
+             form.addEventListener('change', ProjectApp.eventHandlers.handleRadioChange, true);
+             form._catHandlerInstalled = true;
+         }
+         document.addEventListener('click', ProjectApp.eventHandlers.handleClearClick, true);
+         if (!ProjectApp._filterGuardInstalled) {
+             document.addEventListener('click', (e) => {
+                 const el = e.target.closest('.filter-item, .option-item, .mode-block');
+                 if (!el) return;
+                 if (ProjectApp.uiLock?.isLocked()) {
+                     e.preventDefault();
+                     e.stopPropagation();
+                     return;
+                 }
+                 if (el.matches('.filter-item') && ProjectApp.filterCooldown.isActive()) {
+                     e.preventDefault();
+                     e.stopPropagation();
+                     return;
+                 }
+             }, true);
+             ProjectApp._filterGuardInstalled = true;
+         }
+     },
 
-    cleanupSharedListeners() {
-    const form = document.querySelector('#email-form');
-    if (form && form._catHandlerInstalled) {
-    form.removeEventListener('change', ProjectApp.eventHandlers.handleRadioChange, true);
-    delete form._catHandlerInstalled;
-}
-    document.removeEventListener('click', ProjectApp.eventHandlers.handleClearClick, true);
-},
+     cleanupSharedListeners() {
+         const form = document.querySelector('#email-form');
+         if (form && form._catHandlerInstalled) {
+             form.removeEventListener('change', ProjectApp.eventHandlers.handleRadioChange, true);
+             delete form._catHandlerInstalled;
+         }
+         document.removeEventListener('click', ProjectApp.eventHandlers.handleClearClick, true);
+     },
 
-    handleRadioChange(e) {
-    if (ProjectApp.uiLock?.isLocked() || ProjectApp.filterCooldown.isActive()) return;
-    const input = e.target && e.target.matches ? e.target : null;
-    if (!input || !input.matches('input[type="radio"][name="radio"]')) return;
-    const val = String(input.value || 'all').trim().toLowerCase();
-    const labels = Array.from(document.querySelectorAll('.filter-item'));
-    labels.forEach(l => {
-    const i = l.querySelector('input[type="radio"][name="radio"]');
-    l.classList.toggle('is--active', i && i.checked);
-});
-    if (ProjectApp.filterModule?.setCategory) {
-    ProjectApp.filterModule.setCategory(val);
-    ProjectApp.filterCooldown.start(50);
-}
-},
+     handleRadioChange(e) {
+         if (ProjectApp.uiLock?.isLocked() || ProjectApp.filterCooldown.isActive()) return;
+         const input = e.target && e.target.matches ? e.target : null;
+         if (!input || !input.matches('input[type="radio"][name="radio"]')) return;
+         const val = String(input.value || 'all').trim().toLowerCase();
+         const labels = Array.from(document.querySelectorAll('.filter-item'));
+         labels.forEach(l => {
+             const i = l.querySelector('input[type="radio"][name="radio"]');
+             l.classList.toggle('is--active', i && i.checked);
+         });
+         if (ProjectApp.filterModule?.setCategory) {
+             ProjectApp.filterModule.setCategory(val);
+             ProjectApp.filterCooldown.start(50);
+         }
+     },
 
-    handleClearClick(e) {
-    if (ProjectApp.uiLock?.isLocked() || ProjectApp.filterCooldown.isActive()) return;
-    const btn = e.target.closest('[fs-list-element="clear"]');
-    if (!btn) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const form = document.querySelector('#email-form');
-    const all = form ? form.querySelector('input[type="radio"][name="radio"][value="all"]') : null;
-    if (all) {
-    all.checked = true;
-    all.dispatchEvent(new Event('change', {bubbles: true}));
-}
-}
-};
+     handleClearClick(e) {
+         if (ProjectApp.uiLock?.isLocked() || ProjectApp.filterCooldown.isActive()) return;
+         const btn = e.target.closest('[fs-list-element="clear"]');
+         if (!btn) return;
+         e.preventDefault();
+         e.stopPropagation();
+         const form = document.querySelector('#email-form');
+         const all = form ? form.querySelector('input[type="radio"][name="radio"][value="all"]') : null;
+         if (all) {
+             all.checked = true;
+             all.dispatchEvent(new Event('change', {bubbles: true}));
+         }
+     }
+ };
 
     ProjectApp.swiperFx = {
-    getAll() {
-    return Array.from(document.querySelectorAll('.swipers-container .swiper'));
-},
-    getVisible() {
-    return document.querySelector('.swipers-container .swiper.is--visible');
-},
-    getActiveSlide(swiperEl) {
-    const inst = swiperEl && swiperEl.swiper;
-    return inst ? inst.slides[inst.activeIndex] : swiperEl?.querySelector('.swiper-slide-active, .is--active-logical');
-},
-    hide(swiperEl) {
-    if (!swiperEl) return;
-    swiperEl.classList.remove('is--visible');
-    ProjectApp.visibleCleaner.reset(swiperEl);
-    ProjectApp._revealedActive.delete(swiperEl);
-},
-    hideAll() {
-    this.getAll().forEach(el => this.hide(el));
-},
-    setVisible(swiperEl) {
-    if (!swiperEl) return;
-    this.hideAll();
-    swiperEl.classList.add('is--visible');
-},
-    async animateOut(swiperEl) {
-    if (!swiperEl || !window.gsap) return;
-    const slide = this.getActiveSlide(swiperEl);
-    if (!slide) return;
-    await ProjectApp.slideHelpers.hideToBaseline(slide, .8, 'headingHoverEase');
-}
-};
+     getAll() {
+         return Array.from(document.querySelectorAll('.swipers-container .swiper'));
+     },
+     getVisible() {
+         return document.querySelector('.swipers-container .swiper.is--visible');
+     },
+     getActiveSlide(swiperEl) {
+         const inst = swiperEl && swiperEl.swiper;
+         return inst ? inst.slides[inst.activeIndex] : swiperEl?.querySelector('.swiper-slide-active, .is--active-logical');
+     },
+     hide(swiperEl) {
+         if (!swiperEl) return;
+         swiperEl.classList.remove('is--visible');
+         ProjectApp.visibleCleaner.reset(swiperEl);
+         ProjectApp._revealedActive.delete(swiperEl);
+     },
+     hideAll() {
+         this.getAll().forEach(el => this.hide(el));
+     },
+     setVisible(swiperEl) {
+         if (!swiperEl) return;
+         this.hideAll();
+         swiperEl.classList.add('is--visible');
+     },
+     async animateOut(swiperEl) {
+         if (!swiperEl || !window.gsap) return;
+         const slide = this.getActiveSlide(swiperEl);
+         if (!slide) return;
+         await ProjectApp.slideHelpers.hideToBaseline(slide, .8, 'headingHoverEase');
+     }
+ };
 
     ProjectApp.viewSwitcher = {
-    _getListHoverBlock() {
-    return document.querySelector('.background-block.list-hover');
-},
-    _fade(el, toVisible) {
-    if (!el) return;
-    if (window.gsap) {
-    gsap.killTweensOf(el);
-    gsap.to(el, {opacity: toVisible ? 1 : 0, duration: 0.6, ease: 'power2.out'});
-} else {
-    el.style.opacity = toVisible ? '1' : '0';
-}
-},
+     _getListHoverBlock() {
+         return document.querySelector('.background-block.list-hover');
+     },
+     _fade(el, toVisible) {
+         if (!el) return;
+         if (window.gsap) {
+             gsap.killTweensOf(el);
+             gsap.to(el, {opacity: toVisible ? 1 : 0, duration: 0.6, ease: 'power2.out'});
+         } else {
+             el.style.opacity = toVisible ? '1' : '0';
+         }
+     },
 
-    async _revealVisibleSwiperOnce(swiperEl) {
-    const active = ProjectApp.swiperFx.getActiveSlide(swiperEl);
-    if (!active) {
-    return;
-}
-    const last = ProjectApp._revealedActive.get(swiperEl);
-    if (last === active) {
-    return;
-}
-    if (window.gsap) {
-    const t = active.querySelectorAll('.project-block, .background-video-block, .preview-block.is--top, .preview-block.is--bottom');
-    gsap.killTweensOf(t);
-}
-    ProjectApp.slideHelpers.setSlideBaseline(active);
-    await ProjectApp.slideHelpers.revealSlide(active, 0.8);
-    ProjectApp._revealedActive.set(swiperEl, active);
-    ProjectApp.visibleCleaner.runFor(swiperEl);
-},
+     async _revealVisibleSwiperOnce(swiperEl) {
+         const active = ProjectApp.swiperFx.getActiveSlide(swiperEl);
+         if (!active) {
+             return;
+         }
+         const last = ProjectApp._revealedActive.get(swiperEl);
+         if (last === active) {
+             return;
+         }
+         if (window.gsap) {
+             const t = active.querySelectorAll('.project-block, .background-video-block, .preview-block.is--top, .preview-block.is--bottom');
+             gsap.killTweensOf(t);
+         }
+         ProjectApp.slideHelpers.setSlideBaseline(active);
+         await ProjectApp.slideHelpers.revealSlide(active, 0.8);
+         ProjectApp._revealedActive.set(swiperEl, active);
+         ProjectApp.visibleCleaner.runFor(swiperEl);
+     },
 
-    async switchView(mode) {
-    if (mode === ProjectApp.state?.currentView) return;
-    if (ProjectApp.uiLock?.isLocked()) return;
-    ProjectApp.uiLock?.lock();
-    try {
-    const swipersContainer = document.querySelector('.swipers-container');
-    const projectCollection = document.querySelector('.project-collection');
-    const projectList = document.querySelector('.project-list');
-    const LHB = this._getListHoverBlock();
+     async switchView(mode) {
+         if (mode === ProjectApp.state?.currentView) return;
+         if (ProjectApp.uiLock?.isLocked()) return;
+         ProjectApp.uiLock?.lock();
+         try {
+             const swipersContainer = document.querySelector('.swipers-container');
+             const projectCollection = document.querySelector('.project-collection');
+             const projectList = document.querySelector('.project-list');
+             const LHB = this._getListHoverBlock();
 
-    if (mode === 'list') {
-    if (ProjectApp.state?.currentView === 'swiper') {
-    const vis = ProjectApp.swiperFx.getVisible();
-    if (vis) {
-    await ProjectApp.swiperFx.animateOut(vis);
-    await new Promise(r => setTimeout(r, HIDE_DELAY_MS));
-    ProjectApp.swiperFx.hide(vis);
-}
-}
-    if (projectCollection) projectCollection.classList.remove('is--hidden');
-    if (swipersContainer) swipersContainer.classList.add('is--hidden');
-    if (projectList) {
-    projectList.classList.remove('hide');
-    projectList.removeAttribute('aria-hidden');
-}
-    this._fade(LHB, true);
-    ProjectApp.swiperFx.hideAll();
-    ProjectApp.eventHandlers.cleanupSharedListeners();
-    if (ProjectApp.listModule?.ensureListInit) ProjectApp.listModule.ensureListInit();
-    ProjectApp.eventHandlers.setupSharedListeners();
-    ProjectApp.state.currentView = 'list';
-} else {
-    if (ProjectApp.state?.currentView === 'list') {
-    if (ProjectApp.listModule?.animateOutCurrentItems) {
-    await ProjectApp.listModule.animateOutCurrentItems(true);
-    await new Promise(r => setTimeout(r, 100));
-}
-}
-    if (projectCollection) projectCollection.classList.add('is--hidden');
-    if (swipersContainer) swipersContainer.classList.remove('is--hidden');
-    if (projectList) {
-    projectList.classList.add('hide');
-    projectList.setAttribute('aria-hidden', 'true');
-}
-    if (ProjectApp.listModule?.cleanupInfiniteScroll) ProjectApp.listModule.cleanupInfiniteScroll();
+             if (mode === 'list') {
+                 if (ProjectApp.state?.currentView === 'swiper') {
+                     const vis = ProjectApp.swiperFx.getVisible();
+                     if (vis) {
+                         await ProjectApp.swiperFx.animateOut(vis);
+                         await new Promise(r => setTimeout(r, HIDE_DELAY_MS));
+                         ProjectApp.swiperFx.hide(vis);
+                     }
+                 }
+                 if (projectCollection) projectCollection.classList.remove('is--hidden');
+                 if (swipersContainer) swipersContainer.classList.add('is--hidden');
+                 if (projectList) {
+                     projectList.classList.remove('hide');
+                     projectList.removeAttribute('aria-hidden');
+                 }
+                 this._fade(LHB, true);
+                 ProjectApp.swiperFx.hideAll();
+                 ProjectApp.eventHandlers.cleanupSharedListeners();
+                 if (ProjectApp.listModule?.ensureListInit) ProjectApp.listModule.ensureListInit();
+                 ProjectApp.eventHandlers.setupSharedListeners();
+                 ProjectApp.state.currentView = 'list';
+             } else {
+                 if (ProjectApp.state?.currentView === 'list') {
+                     if (ProjectApp.listModule?.animateOutCurrentItems) {
+                         await ProjectApp.listModule.animateOutCurrentItems(true);
+                         await new Promise(r => setTimeout(r, 100));
+                     }
+                 }
+                 if (projectCollection) projectCollection.classList.add('is--hidden');
+                 if (swipersContainer) swipersContainer.classList.remove('is--hidden');
+                 if (projectList) {
+                     projectList.classList.add('hide');
+                     projectList.setAttribute('aria-hidden', 'true');
+                 }
+                 if (ProjectApp.listModule?.cleanupInfiniteScroll) ProjectApp.listModule.cleanupInfiniteScroll();
 
-    const category = ProjectApp.state?.currentCategory || 'all';
-    if (ProjectApp.swiperModule?.switchToCategory) {
-    await ProjectApp.swiperModule.switchToCategory(category);
-}
+                 const category = ProjectApp.state?.currentCategory || 'all';
+                 if (ProjectApp.swiperModule?.switchToCategory) {
+                     await ProjectApp.swiperModule.switchToCategory(category);
+                 }
 
-    const currentSwiper =
-    document.querySelector('.swipers-container .swiper.is--visible, .swipers-container .swiper[data-active="1"]')
-    || document.querySelector(`.swipers-container .swiper[data-category="${category}"]`)
-    || document.querySelector('.swipers-container .swiper');
+                 const currentSwiper =
+                     document.querySelector('.swipers-container .swiper.is--visible, .swipers-container .swiper[data-active="1"]')
+                     || document.querySelector(`.swipers-container .swiper[data-category="${category}"]`)
+                     || document.querySelector('.swipers-container .swiper');
 
-    if (currentSwiper) {
-    ProjectApp.swiperFx.setVisible(currentSwiper);
-    ProjectApp.visibleCleaner.scheduleFor(currentSwiper, 0);
-}
+                 if (currentSwiper) {
+                     ProjectApp.swiperFx.setVisible(currentSwiper);
+                     ProjectApp.visibleCleaner.scheduleFor(currentSwiper, 0);
+                 }
 
-    this._fade(LHB, false);
-    this.bindRevealOnSwipers();
-    ProjectApp.eventHandlers.setupSharedListeners();
-    ProjectApp.state.currentView = 'swiper';
-}
-} finally {
-    ProjectApp.uiLock?.unlock();
-}
-},
+                 this._fade(LHB, false);
+                 this.bindRevealOnSwipers();
+                 ProjectApp.eventHandlers.setupSharedListeners();
+                 ProjectApp.state.currentView = 'swiper';
+             }
+         } finally {
+             ProjectApp.uiLock?.unlock();
+         }
+     },
 
-    bindRevealOnSwipers() {
-    const containers = Array.from(document.querySelectorAll('.swipers-container .swiper'));
-    containers.forEach(swiperEl => {
-    const inst = swiperEl && swiperEl.swiper;
-    if (!inst || inst._revealBound) return;
-    inst._revealBound = true;
-    inst.on('init', () => {
-});
-    inst.on('slideChangeTransitionStart', () => {
-});
-});
-},
+     bindRevealOnSwipers() {
+         const containers = Array.from(document.querySelectorAll('.swipers-container .swiper'));
+         containers.forEach(swiperEl => {
+             const inst = swiperEl && swiperEl.swiper;
+             if (!inst || inst._revealBound) return;
+             inst._revealBound = true;
+             inst.on('init', () => {
+             });
+             inst.on('slideChangeTransitionStart', () => {
+             });
+         });
+     },
 
-    revealCurrentActive(forceReset = false) {
-    const visibleSwiper = document.querySelector('.swiper.is--visible') || document.querySelector('.swipers-container .swiper');
-    if (!visibleSwiper) return Promise.resolve();
-    const inst = visibleSwiper.swiper;
-    const active = inst ? inst.slides[inst.activeIndex] : visibleSwiper.querySelector('.swiper-slide-active, .is--active-logical');
-    if (!active) return Promise.resolve();
-    if (forceReset) ProjectApp.slideHelpers.setSlideBaseline(active);
-    return ProjectApp.slideHelpers.revealSlide(active, 0.8);
-},
+     revealCurrentActive(forceReset = false) {
+         const visibleSwiper = document.querySelector('.swiper.is--visible') || document.querySelector('.swipers-container .swiper');
+         if (!visibleSwiper) return Promise.resolve();
+         const inst = visibleSwiper.swiper;
+         const active = inst ? inst.slides[inst.activeIndex] : visibleSwiper.querySelector('.swiper-slide-active, .is--active-logical');
+         if (!active) return Promise.resolve();
+         if (forceReset) ProjectApp.slideHelpers.setSlideBaseline(active);
+         return ProjectApp.slideHelpers.revealSlide(active, 0.8);
+     },
 
-    animateOutListBackground() {
-    return Promise.resolve();
-},
-    animateInListBackground() {
-    return Promise.resolve();
-},
-    animateOutSwiperToBaseline() {
-    const vis = ProjectApp.swiperFx.getVisible();
-    return vis ? ProjectApp.swiperFx.animateOut(vis) : Promise.resolve();
-},
+     animateOutListBackground() {
+         return Promise.resolve();
+     },
+     animateInListBackground() {
+         return Promise.resolve();
+     },
+     animateOutSwiperToBaseline() {
+         const vis = ProjectApp.swiperFx.getVisible();
+         return vis ? ProjectApp.swiperFx.animateOut(vis) : Promise.resolve();
+     },
 
-// Add this NEW function to apply video states
-        applyModeState() {
-            const isModeActive = sessionStorage.getItem('modeActive') === 'true';
-            const modeBlock = document.querySelector('.mode-block');
+     initSwitchAnimation() {
+         ProjectApp.viewSwitcher.cleanupSwitchAnimation();
+         ProjectApp.state.switchAnim.modeBlock = document.querySelector('.mode-block');
+         ProjectApp.state.switchAnim.filterButtons = Array.from(document.querySelectorAll('.filter-item'));
+         ProjectApp.state.switchAnim.optionBlocks = Array.from(document.querySelectorAll('.option-item'));
 
-            // Update mode block state
-            if (modeBlock) {
-                if (isModeActive) {
-                    modeBlock.classList.add('is--active');
-                } else {
-                    modeBlock.classList.remove('is--active');
-                }
-            }
+         if (ProjectApp.state.switchAnim.modeBlock) {
+             const onModeClick = () => {
+                 if (ProjectApp.uiLock?.isLocked()) return;
+                 ProjectApp.state.switchAnim.modeBlock.classList.toggle('is--active');
+             };
+             ProjectApp.viewSwitcher.addTrackedListener(ProjectApp.state.switchAnim.modeBlock, 'click', onModeClick);
+         }
 
-            // Apply to all background blocks on current page
-            const backgroundVideoBlocks = document.querySelectorAll('.background-video-block');
-            const backgroundBlocks = document.querySelectorAll('.background-block');
+         ProjectApp.state.switchAnim.filterButtons.forEach((btn) => {
+             const onFilterClick = () => {
+                 if (!ProjectApp.uiLock?.isLocked()) {
+                 }
+             };
+             ProjectApp.viewSwitcher.addTrackedListener(btn, 'click', onFilterClick);
+         });
 
-            [...backgroundVideoBlocks, ...backgroundBlocks].forEach(block => {
-                const video = block.querySelector('video');
+         ProjectApp.state.switchAnim.optionBlocks.forEach((opt) => {
+             const onOptionClick = () => {
+                 if (ProjectApp.uiLock?.isLocked()) return;
+                 if (!opt.classList.contains('is--active')) {
+                     ProjectApp.state.switchAnim.optionBlocks.forEach(b => b.classList.remove('is--active'));
+                     opt.classList.add('is--active');
+                     if (opt.hasAttribute('data-list')) ProjectApp.viewSwitcher.switchView('list');
+                     else ProjectApp.viewSwitcher.switchView('swiper');
+                 }
+             };
+             ProjectApp.viewSwitcher.addTrackedListener(opt, 'click', onOptionClick);
+         });
+     },
 
-                if (isModeActive) {
-                    block.classList.add('is--on');
-                    if (video) {
-                        video.setAttribute('autoplay', 'autoplay');
-                        video.play().catch(e => console.log('Video play failed:', e));
-                    }
-                } else {
-                    block.classList.remove('is--on');
-                    if (video) {
-                        video.removeAttribute('autoplay');
-                        video.pause();
-                        video.currentTime = 0;
-                    }
-                }
-            });
+     cleanupSwitchAnimation() {
+         ProjectApp.state = ProjectApp.state || {switchAnim: {listeners: []}};
+         (ProjectApp.state.switchAnim.listeners || []).forEach(({target, type, handler, options}) => {
+             try {
+                 target.removeEventListener(type, handler, options);
+             } catch (e) {
+             }
+         });
+         ProjectApp.state.switchAnim.listeners = [];
+         ProjectApp.state.switchAnim.modeBlock = null;
+         ProjectApp.state.switchAnim.filterButtons = [];
+         ProjectApp.state.switchAnim.optionBlocks = [];
+     },
 
-            console.log('Applied mode state:', isModeActive ? 'active' : 'inactive');
-        },
+     addTrackedListener(target, type, handler, options) {
+         if (!target) return;
+         target.addEventListener(type, handler, options || false);
+         ProjectApp.state.switchAnim.listeners.push({target, type, handler, options: options || false});
+     }
+     };
 
-        initSwitchAnimation() {
-            ProjectApp.viewSwitcher.cleanupSwitchAnimation();
-            ProjectApp.state.switchAnim.modeBlock = document.querySelector('.mode-block');
-            ProjectApp.state.switchAnim.filterButtons = Array.from(document.querySelectorAll('.filter-item'));
-            ProjectApp.state.switchAnim.optionBlocks = Array.from(document.querySelectorAll('.option-item'));
-
-            if (ProjectApp.state.switchAnim.modeBlock) {
-                const onModeClick = () => {
-                    const wasActive = ProjectApp.state.switchAnim.modeBlock.classList.contains('is--active');
-                    const nowActive = !wasActive;
-
-                    // Toggle mode block state
-                    ProjectApp.state.switchAnim.modeBlock.classList.toggle('is--active');
-
-                    // Save state to sessionStorage so it persists across pages
-                    sessionStorage.setItem('modeActive', nowActive.toString());
-
-                    const backgroundVideoBlocks = document.querySelectorAll('.background-video-block');
-                    const backgroundBlocks = document.querySelectorAll('.background-block');
-
-                    // Clear existing timeouts
-                    if (ProjectApp.state.switchAnim.videoTimeouts) {
-                        ProjectApp.state.switchAnim.videoTimeouts.forEach(timeout => clearTimeout(timeout));
-                        ProjectApp.state.switchAnim.videoTimeouts = [];
-                    } else {
-                        ProjectApp.state.switchAnim.videoTimeouts = [];
-                    }
-
-                    // Apply to all background blocks
-                    [...backgroundVideoBlocks, ...backgroundBlocks].forEach(block => {
-                        const video = block.querySelector('video');
-
-                        if (nowActive) {
-                            block.classList.add('is--on');
-                            if (video) {
-                                video.setAttribute('autoplay', 'autoplay');
-                                video.play().catch(e => console.log('Video play failed:', e));
-                            }
-                        } else {
-                            block.classList.remove('is--on');
-                            if (video) {
-                                const timeout = setTimeout(() => {
-                                    video.removeAttribute('autoplay');
-                                    video.pause();
-                                    video.currentTime = 0;
-                                }, 1200);
-                                ProjectApp.state.switchAnim.videoTimeouts.push(timeout);
-                            }
-                        }
-                    });
-                };
-
-                ProjectApp.viewSwitcher.addTrackedListener(ProjectApp.state.switchAnim.modeBlock, 'click', onModeClick);
-            }
-
-            ProjectApp.state.switchAnim.filterButtons.forEach((btn) => {
-                const onFilterClick = () => {
-                    if (!btn.classList.contains('is--active')) {
-                        ProjectApp.state.switchAnim.filterButtons.forEach(b => b.classList.remove('is--active'));
-                        btn.classList.add('is--active');
-                    }
-                };
-                ProjectApp.viewSwitcher.addTrackedListener(btn, 'click', onFilterClick);
-            });
-
-            ProjectApp.state.switchAnim.optionBlocks.forEach((opt) => {
-                const onOptionClick = () => {
-                    if (!opt.classList.contains('is--active')) {
-                        ProjectApp.state.switchAnim.optionBlocks.forEach(b => b.classList.remove('is--active'));
-                        opt.classList.add('is--active');
-                        if (opt.hasAttribute('data-list')) {
-                            ProjectApp.viewSwitcher.switchView('list');
-                        } else {
-                            ProjectApp.viewSwitcher.switchView('swiper');
-                        }
-                    }
-                };
-                ProjectApp.viewSwitcher.addTrackedListener(opt, 'click', onOptionClick);
-            });
-
-            // Apply saved mode state on init
-            ProjectApp.viewSwitcher.applyModeState();
-        },
-
-        initializeVideoStates() {
-            // This now happens in applyModeState
-            ProjectApp.viewSwitcher.applyModeState();
-        },
-
-    initializeVideoStates() {
-    const backgroundVideoBlocks = document.querySelectorAll('.background-video-block');
-    const backgroundBlocks = document.querySelectorAll('.background-block');
-
-    [...backgroundVideoBlocks, ...backgroundBlocks].forEach(block => {
-    const video = block.querySelector('video');
-    if (video) {
-    if (!block.classList.contains('is--on')) {
-    video.removeAttribute('autoplay');
-    video.pause();
-    video.currentTime = 0;
-}
-}
-});
-},
-
-    cleanupSwitchAnimation() {
-    if (ProjectApp.state.switchAnim.videoTimeouts) {
-    ProjectApp.state.switchAnim.videoTimeouts.forEach(timeout => clearTimeout(timeout));
-    ProjectApp.state.switchAnim.videoTimeouts = [];
-}
-
-    ProjectApp.state.switchAnim.listeners.forEach(({target, type, handler, options}) => {
-    try { target.removeEventListener(type, handler, options); } catch(e) {}
-});
-    ProjectApp.state.switchAnim.listeners = [];
-    ProjectApp.state.switchAnim.modeBlock = null;
-    ProjectApp.state.switchAnim.filterButtons = [];
-    ProjectApp.state.switchAnim.optionBlocks = [];
-},
-
-    addTrackedListener(target, type, handler, options) {
-    target.addEventListener(type, handler, options || false);
-    ProjectApp.state.switchAnim.listeners.push({ target, type, handler, options: options || false });
-}
-};
-
-    // window.ProjectApp = window.ProjectApp || {};
-    // ProjectApp.state = ProjectApp.state || {};
-    // ProjectApp.filterModule = ProjectApp.filterModule || {};
-    ProjectApp.debug = (ProjectApp.debug !== undefined) ? ProjectApp.debug : true;
-
-    (function () {
-    const hasGSAP = () => typeof window.gsap !== 'undefined';
-    const twoDigit = (n) => { n = Number(n) || 0; return n < 10 ? ('0' + n) : String(n); };
-
-    function countSlides(swiperEl) {
-    if (!swiperEl) return 0;
-    const wr = swiperEl.querySelector('.swiper-wrapper');
-    if (!wr) return 0;
-    return Array.from(wr.querySelectorAll('.swiper-slide')).filter(s => !s.classList.contains('swiper-slide-duplicate')).length;
-}
-
-    function readAllCountsFromDOM() {
-    return {
-    all: countSlides(document.querySelector('.swiper.is--all')),
-    editorial: countSlides(document.querySelector('.swiper.is--editorial')),
-    'tv-film': countSlides(document.querySelector('.swiper.is--tv-film')),
-    commercial: countSlides(document.querySelector('.swiper.is--commercial')),
-};
-}
-
-    function normalizeCatIdentity(v) {
-    const s = String(v ?? 'all').trim().toLowerCase();
-    return s || 'all';
-}
-
-    ProjectApp.filterModule.initializeTotalCounts = function () {
-    if (ProjectApp.state.countsInitialized) return;
-    ProjectApp.state.totalCounts = readAllCountsFromDOM();
-    ProjectApp.filterModule.updateAllCountDisplays();
-    ProjectApp.state.countsInitialized = true;
-};
-
-    ProjectApp.filterModule.updateAllCountDisplays = function () {
-    const tc = ProjectApp.state.totalCounts;
-    if (!tc) return;
-    document.querySelectorAll('[data-total]').forEach(el => el.textContent = twoDigit(tc.all));
-    document.querySelectorAll('[data-editorial]').forEach(el => el.textContent = twoDigit(tc.editorial));
-    document.querySelectorAll('[data-tv-film]').forEach(el => el.textContent = twoDigit(tc['tv-film']));
-    document.querySelectorAll('[data-commercial]').forEach(el => el.textContent = twoDigit(tc.commercial));
-    ProjectApp.filterModule.updateCurrentTotalCount();
-};
-
-    ProjectApp.filterModule.updateCurrentTotalCount = function () {
-    const tc = ProjectApp.state.totalCounts;
-    if (!tc) return;
-    const cat = normalizeCatIdentity(ProjectApp.state.currentCategory || 'all');
-    const count = (cat === 'all') ? tc.all : (tc[cat] ?? tc.all);
-    document.querySelectorAll('[data-current-total]').forEach(el => el.textContent = twoDigit(count));
-};
-
-    ProjectApp.filterModule.setCategory = function (newCat) {
-    const next = normalizeCatIdentity(newCat);
-    const prev = normalizeCatIdentity(ProjectApp.state.currentCategory || 'all');
-    if (prev === next) { ProjectApp.filterModule.updateCurrentTotalCount(); return; }
-    ProjectApp.state.currentCategory = next;
-    ProjectApp.filterModule.updateCurrentTotalCount();
-    const view = ProjectApp.state.currentView || 'list';
-    if (view === 'list') {
-    if (ProjectApp.listModule?.rebuildListForCurrentFilter) {
-    Promise.resolve(ProjectApp.listModule.rebuildListForCurrentFilter());
-}
-} else if (view === 'swiper') {
-    if (ProjectApp.swiperModule?.switchToCategory) {
-    Promise.resolve(ProjectApp.swiperModule.switchToCategory(next));
-}
-}
-};
-
-    ProjectApp.filterModule.debugValidateSwiperCounts = function () {
-    const dom = readAllCountsFromDOM();
-    if (!ProjectApp.state.totalCounts) return;
-    const mismatch = Object.keys(dom).some(k => dom[k] !== ProjectApp.state.totalCounts[k]);
-    if (mismatch) ProjectApp.filterModule.updateAllCountDisplays();
-};
-
-    function getVisibleSwiper() {
-    return document.querySelector('.swipers-container .swiper.is--visible');
-}
-
-    function getListRoot() {
-    return document.querySelector('.project-list');
-}
-
-    function collapseBlocks(root) {
-    if (!root) return;
-    const all = root.querySelectorAll('.project-block, .background-video-block, .background-video-block .background-video, .video-spacer, .video-wrapper');
-    all.forEach(el => {
-    el.style.transition = 'none';
-    el.style.clipPath = 'polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)';
-});
-    const pw = root.querySelectorAll('.preview-block .preview-video');
-    pw.forEach(p => {
-    const isTop = p.closest('.preview-block')?.classList.contains('is--top');
-    p.style.transition = 'none';
-    p.style.clipPath = isTop
-    ? 'polygon(0 0%, 100% 0%, 100% 0%, 0 0%)'
-    : 'polygon(0 100%, 100% 100%, 100% 100%, 0 100%)';
-});
-    const wr = root.querySelector('.preview-wrapper');
-    if (wr) wr.style.opacity = '0';
-}
-
-    function expandBlocks(root, opts = {}) {
-    if (!root) return Promise.resolve();
-    if (!hasGSAP()) {
-    const all = root.querySelectorAll('.project-block, .background-video-block, .background-video-block');
-    all.forEach(el => { el.style.clipPath = 'polygon(0 0, 100% 0, 100% 100%, 0 100%)'; });
-    const wr = root.querySelector('.preview-wrapper');
-    if (wr) wr.style.opacity = '1';
-    return Promise.resolve();
-}
-    const d = opts.duration || .8;
-    const ez = opts.ease || 'headingHoverEase';
-    return new Promise(resolve => {
-    const tl = gsap.timeline({onComplete: resolve});
-    const blocks = root.querySelectorAll('.project-block, .background-video-block, .background-video-block');
-    blocks.forEach((b,i)=>tl.to(b,{clipPath:'polygon(0 0, 100% 0, 100% 100%, 0 100%)',duration:d,ease:ez,delay:i*0.02},0));
-    const pv = root.querySelectorAll('.preview-block .preview-video');
-    pv.forEach(p=>tl.to(p,{clipPath:'polygon(0 0, 100% 0, 100% 100%, 0 100%)',duration:d,ease:ez},0));
-});
-}
-
-    async function animateOutCurrentView(currentView) {
-    if (currentView === 'swiper') {
-    const swiperEl = getVisibleSwiper();
-    if (!swiperEl) return;
-    const active = swiperEl.querySelector('.swiper-slide-active, .is--active-logical') || swiperEl;
-    collapseBlocks(active);
-    await expandBlocks(active, {duration: .01});
-    if (ProjectApp.swiperModule?.animateSwiperOut) await ProjectApp.swiperModule.animateSwiperOut(swiperEl);
-} else if (currentView === 'list') {
-    const list = getListRoot();
-    if (!list) return;
-    collapseBlocks(list);
-    await expandBlocks(list, {duration: .4});
-}
-}
-
-    function showOnly(view) {
-    const container = document.querySelector('.swipers-container');
-    const list = getListRoot();
-    if (container) container.style.display = (view === 'swiper') ? '' : 'none';
-    if (list) list.style.display = (view === 'list') ? '' : 'none';
-}
-
-    async function animateInNextView(nextView) {
-    if (nextView === 'swiper') {
-    const swiperEl = getVisibleSwiper();
-    if (!swiperEl) { if (ProjectApp.swiperModule?.initAll) ProjectApp.swiperModule.initAll(); }
-    const targetSwiper = getVisibleSwiper();
-    if (targetSwiper) {
-    const active = targetSwiper.querySelector('.swiper-slide-active, .is--active-logical') || targetSwiper;
-    collapseBlocks(active);
-    if (ProjectApp.swiperModule?.animateActiveSlideIn) {
-    await ProjectApp.swiperModule.animateActiveSlideIn(targetSwiper);
-} else {
-    await expandBlocks(active, {duration: .8});
-}
-}
-} else if (nextView === 'list') {
-    const list = getListRoot();
-    if (list) {
-    collapseBlocks(list);
-    await expandBlocks(list, {duration: .6});
-}
-}
-}
-
-    ProjectApp.filterModule.switchView = async function (toView) {
-    const next = (toView === 'swiper') ? 'swiper' : 'list';
-    const prev = ProjectApp.state.currentView || 'list';
-    if (prev === next) return;
-    await animateOutCurrentView(prev);
-    showOnly(next);
-    ProjectApp.state.currentView = next;
-    if (next === 'swiper') {
-    if (ProjectApp.swiperModule?.initAll && !ProjectApp.swiperModule.swipers?.all) {
-    ProjectApp.swiperModule.initAll();
-} else if (ProjectApp.swiperModule?.swipers && ProjectApp.state.currentCategory) {
-    const cat = ProjectApp.state.currentCategory;
-    if (!ProjectApp.swiperModule.swipers[cat] && ProjectApp.swiperModule.initSwiper) {
-    ProjectApp.swiperModule.initSwiper(cat);
-}
-}
-}
-    await animateInNextView(next);
-};
-    })();
-
-
-    // ============================================
-    // ARCHIVE PAGE MODULE
-    // ============================================
+    // ARCHIVE PAGE
     ProjectApp.archivePageModule = {
         config: {
         VIDEO_LOAD_DELAY: 800,
@@ -3754,9 +3540,7 @@
     }
     };
 
-    // ============================================
-    // SPECIFIC PAGE MODULE
-    // ============================================
+    // ABOUT PAGE
     ProjectApp.pageSpecificModule = {
         state: {
             truncateResizeHandler: null,
@@ -6099,9 +5883,7 @@
         }
     };
 
-    // ============================================
-    // REPORTAGE
-    // ============================================
+    // REPORTAGE PAGE
     ProjectApp.reportageSwiper = {
         swiperMove: null,
         swiperFade: null,
@@ -7082,798 +6864,8 @@
         }
     };
 
-
-    // ============================================
     // ANIMATIONS
     // ============================================
-    ProjectApp.animations = {
-        initLinkHover() {
-            ProjectApp.animations.cleanupLinkHover();
-            const navLinks = Array.from(document.querySelectorAll('[data-shuffle]'))
-                .filter(el =>
-                    !el.closest('.swiper-slide') &&
-                    !el.closest('.project-item') &&
-                    !el.closest('.press-hover')
-                );
-            navLinks.forEach((link) => {
-                ProjectApp.animations.initShuffleHover(link);
-            });
-        },
-
-        initShuffleHover(element) {
-            if (element.closest('.swiper-slide') || element.closest('.project-item') || element.closest('.guilds-image-wrapper') || element.closest('.press-hover')) return;
-
-            const innerEl = element.querySelector('[data-inner]');
-            const targetEl = innerEl || element;
-            const originalText = targetEl.textContent;
-
-            if (getComputedStyle(targetEl).position === 'static') {
-                targetEl.style.position = 'relative';
-            }
-
-            const split = new SplitType(targetEl, {types: 'chars'});
-            const originalChars = split.chars;
-            const duplicateChars = [];
-
-            originalChars.forEach((char, index) => {
-                char.style.position = 'relative';
-                const dup = char.cloneNode(true);
-                dup.style.position = 'absolute';
-
-                const cr = char.getBoundingClientRect();
-                const lr = targetEl.getBoundingClientRect();
-
-                dup.style.left = (cr.left - lr.left) + 'px';
-                dup.style.top = (cr.top - lr.top) + 'px';
-
-                const cs = getComputedStyle(char);
-                dup.style.width = cr.width + 'px';
-                dup.style.height = cr.height + 'px';
-                dup.style.fontSize = cs.fontSize;
-                dup.style.fontWeight = cs.fontWeight;
-                dup.style.lineHeight = cs.lineHeight;
-                dup.style.letterSpacing = cs.letterSpacing;
-                dup.style.textTransform = cs.textTransform;
-                dup.style.fontFamily = cs.fontFamily;
-                dup.style.margin = '0';
-                dup.style.padding = '0';
-                dup.style.zIndex = '1';
-                char.style.zIndex = '2';
-
-                const fromBottom = index % 2 === 0;
-                gsap.set(dup, {yPercent: fromBottom ? 100 : -100});
-
-                targetEl.appendChild(dup);
-                duplicateChars.push(dup);
-            });
-
-            let resizeTO;
-            const onResize = () => {
-                clearTimeout(resizeTO);
-                resizeTO = setTimeout(() => {
-                    const lr = targetEl.getBoundingClientRect();
-                    originalChars.forEach((char, i) => {
-                        const cr = char.getBoundingClientRect();
-                        const dup = duplicateChars[i];
-                        dup.style.left = (cr.left - lr.left) + 'px';
-                        dup.style.top = (cr.top - lr.top) + 'px';
-                        dup.style.width = cr.width + 'px';
-                        dup.style.height = cr.height + 'px';
-                    });
-                }, 100);
-            };
-            window.addEventListener('resize', onResize);
-
-            let tl = null;
-            const onEnter = () => {
-                if (tl) tl.kill();
-
-                const lr = targetEl.getBoundingClientRect();
-                originalChars.forEach((char, i) => {
-                    const cr = char.getBoundingClientRect();
-                    const dup = duplicateChars[i];
-                    dup.style.left = (cr.left - lr.left) + 'px';
-                    dup.style.top = (cr.top - lr.top) + 'px';
-                });
-
-                tl = gsap.timeline();
-                originalChars.forEach((char, i) => {
-                    const fromBottom = i % 2 === 0;
-                    tl.to(char, {
-                        yPercent: fromBottom ? -100 : 100,
-                        duration: 0.5,
-                        ease: 'power3.inOut'
-                    }, 0);
-                    tl.to(duplicateChars[i], {
-                        yPercent: 0,
-                        duration: 0.5,
-                        ease: 'power3.inOut'
-                    }, 0);
-                });
-            };
-
-            const onLeave = () => {
-                if (tl) tl.kill();
-
-                tl = gsap.timeline();
-                originalChars.forEach((char, i) => {
-                    const fromBottom = i % 2 === 0;
-                    tl.to(char, {
-                        yPercent: 0,
-                        duration: 0.5,
-                        ease: 'power3.inOut'
-                    }, 0);
-                    tl.to(duplicateChars[i], {
-                        yPercent: fromBottom ? 100 : -100,
-                        duration: 0.5,
-                        ease: 'power3.inOut'
-                    }, 0);
-                });
-            };
-
-            element.addEventListener('mouseenter', onEnter);
-            element.addEventListener('mouseleave', onLeave);
-
-            ProjectApp.state.linkHoverState.items.push({
-                link: element,
-                split,
-                originalText,
-                originalChars,
-                duplicateChars,
-                onEnter,
-                onLeave,
-                onResize
-            });
-        },
-
-        initAlternatingShuffleForElement(element) {
-            const isInSwiper = element.closest('.swiper-slide');
-            const isInProject = element.closest('.project-item');
-            const isInGuilds = element.closest('.guilds-image-wrapper');
-            const isInPress = element.closest('.press-hover');
-
-            if (!isInSwiper && !isInProject && !isInGuilds && !isInPress) return;
-
-            if (element.dataset.shuffleInitialized === 'true') return;
-
-            const innerEl = element.querySelector('[data-inner]');
-            const targetEl = innerEl || element;
-
-            const existingSpans = targetEl.querySelectorAll('span > span');
-            if (existingSpans.length > 0) {
-                element.dataset.shuffleInitialized = 'true';
-                return;
-            }
-
-            const text = targetEl.textContent;
-            if (!text || text.trim() === '') return;
-
-            element.dataset.shuffleInitialized = 'true';
-            targetEl.textContent = '';
-            targetEl.style.position = 'relative';
-            targetEl.style.display = 'inline-block';
-            targetEl.style.overflow = 'hidden';
-
-            const chars = text.split('');
-            const charElements = [];
-
-            chars.forEach((char, index) => {
-                const charWrap = document.createElement('span');
-                charWrap.style.position = 'relative';
-                charWrap.style.display = 'inline-block';
-                charWrap.style.overflow = 'hidden';
-                charWrap.style.verticalAlign = 'top';
-
-                const charInner = document.createElement('span');
-                charInner.style.display = 'block';
-                charInner.textContent = char;
-
-                const fromTop = index % 2 === 0;
-                charInner.style.transform = fromTop ? 'translateY(-100%)' : 'translateY(100%)';
-
-                charWrap.appendChild(charInner);
-                targetEl.appendChild(charWrap);
-                charElements.push({inner: charInner, fromTop});
-            });
-
-            let isInside = false;
-
-            element.addEventListener('mouseenter', function() {
-                if (isInside) return;
-                isInside = true;
-                charElements.forEach(({inner}) => {
-                    inner.style.transition = 'transform 0.5s cubic-bezier(0.65, 0, 0.35, 1)';
-                    requestAnimationFrame(() => {
-                        inner.style.transform = 'translateY(0)';
-                    });
-                });
-            }, true);
-
-            element.addEventListener('mouseleave', function() {
-                if (!isInside) return;
-                isInside = false;
-                charElements.forEach(({inner, fromTop}) => {
-                    inner.style.transition = 'transform 0.5s cubic-bezier(0.65, 0, 0.35, 1)';
-                    inner.style.transform = fromTop ? 'translateY(-100%)' : 'translateY(100%)';
-                });
-            }, true);
-        },
-
-        addHoverAnimationToSwiperSlides(swiper) {
-            if (!swiper || !swiper.slides || !Array.isArray(swiper.slides)) return;
-
-            const slides = swiper.slides;
-            slides.forEach(slide => {
-                if (slide.classList.contains('swiper-slide-duplicate')) return;
-                if (slide.dataset.animationsInitialized === 'true') return;
-
-                slide.dataset.animationsInitialized = 'true';
-
-                const wrappers = slide.querySelectorAll('.video-hover-wrapper');
-                wrappers.forEach(wrap => {
-                    const inner = wrap.querySelector('.video-hover-inner');
-                    if (!inner) return;
-
-                    if (getComputedStyle(wrap).position === 'static') {
-                        wrap.style.position = 'relative';
-                    }
-
-                    inner.style.position = 'absolute';
-                    inner.style.left = '50%';
-                    inner.style.top = '50%';
-                    inner.style.transform = 'translate(-50%, -50%)';
-                    inner.style.pointerEvents = 'none';
-
-                    let isHovering = false;
-
-                    wrap.addEventListener('mouseenter', function(e) {
-                        isHovering = true;
-                        const r = wrap.getBoundingClientRect();
-                        const x = e.clientX - r.left;
-                        const y = e.clientY - r.top;
-                        inner.style.transform = `translate(calc(-50% + ${x - r.width/2}px), calc(-50% + ${y - r.height/2}px))`;
-                    });
-
-                    wrap.addEventListener('mousemove', function(e) {
-                        if (!isHovering) return;
-                        const r = wrap.getBoundingClientRect();
-                        const x = e.clientX - r.left;
-                        const y = e.clientY - r.top;
-                        inner.style.transform = `translate(calc(-50% + ${x - r.width/2}px), calc(-50% + ${y - r.height/2}px))`;
-                    });
-
-                    wrap.addEventListener('mouseleave', function() {
-                        isHovering = false;
-                        inner.style.transform = 'translate(-50%, -50%)';
-                    });
-                });
-
-                const shuffleElements = slide.querySelectorAll('[data-shuffle]');
-                shuffleElements.forEach(shuffleEl => {
-                    ProjectApp.animations.initAlternatingShuffleForElement(shuffleEl);
-                });
-            });
-        },
-
-        addHoverAnimationToPosterBlock(posterBlock) {
-            const wrappers = posterBlock.querySelectorAll('.report-hover-wrapper');
-            wrappers.forEach(wrap => {
-                const inner = wrap.querySelector('.video-hover-inner');
-                if (!inner) return;
-
-                if (getComputedStyle(wrap).position === 'static') {
-                    wrap.style.position = 'relative';
-                }
-                wrap.style.pointerEvents = 'auto';
-
-                inner.style.position = 'absolute';
-                inner.style.left = '50%';
-                inner.style.top = '50%';
-                inner.style.transform = 'translate(-50%, -50%)';
-                inner.style.pointerEvents = 'none';
-
-                let isHovering = false;
-
-                wrap.addEventListener('mouseenter', function(e) {
-                    isHovering = true;
-                    const r = wrap.getBoundingClientRect();
-                    const x = e.clientX - r.left;
-                    const y = e.clientY - r.top;
-                    inner.style.transform = `translate(calc(-50% + ${x - r.width/2}px), calc(-50% + ${y - r.height/2}px))`;
-                });
-
-                wrap.addEventListener('mousemove', function(e) {
-                    if (!isHovering) return;
-                    const r = wrap.getBoundingClientRect();
-                    const x = e.clientX - r.left;
-                    const y = e.clientY - r.top;
-                    inner.style.transform = `translate(calc(-50% + ${x - r.width/2}px), calc(-50% + ${y - r.height/2}px))`;
-                });
-
-                wrap.addEventListener('mouseleave', function() {
-                    isHovering = false;
-                    inner.style.transform = 'translate(-50%, -50%)';
-                });
-            });
-
-            const shuffleElements = posterBlock.querySelectorAll('[data-shuffle]');
-            shuffleElements.forEach(shuffleEl => {
-                ProjectApp.animations.initAlternatingShuffleForElement(shuffleEl);
-            });
-
-            if (!posterBlock.dataset.clickHandlerAdded) {
-                posterBlock.dataset.clickHandlerAdded = 'true';
-                posterBlock.style.cursor = 'pointer';
-                posterBlock.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    const isAdding = !posterBlock.classList.contains('is--large');
-                    posterBlock.classList.toggle('is--large');
-
-                    const cursorTextBlock = posterBlock.querySelector('.cursor-text-block');
-                    if (cursorTextBlock) {
-                        if (isAdding) {
-                            cursorTextBlock.style.transform = 'translateY(-100%)';
-                        } else {
-                            cursorTextBlock.style.transform = 'translateY(0%)';
-                        }
-                    }
-
-                    const infoWrapper = document.querySelector('.info-wrapper');
-                    if (infoWrapper) {
-                        if (isAdding) {
-                            infoWrapper.style.zIndex = '0';
-                        } else {
-                            infoWrapper.style.zIndex = '900';
-                        }
-                    }
-
-                    if (isAdding) {
-                        if (typeof ScrollTrigger !== 'undefined') {
-                            ScrollTrigger.getAll().forEach(trigger => trigger.disable());
-                        }
-
-                        if (window.swiperInstance) {
-                            window.swiperInstance.allowSlideNext = false;
-                            window.swiperInstance.allowSlidePrev = false;
-                            window.swiperInstance.allowTouchMove = false;
-                        }
-
-                        const activeSlide = document.querySelector('.swiper-slide-active');
-                        const prevSlide = document.querySelector('.swiper-slide.is--prev-logical');
-
-                        if (activeSlide) {
-                            const previewWrapper = activeSlide.querySelector('.preview-wrapper_reportage');
-                            if (previewWrapper) {
-                                const previewBlocks = previewWrapper.querySelectorAll('.preview-block_reportage');
-                                if (previewBlocks[0]) {
-                                    previewBlocks[0].style.clipPath = 'polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)';
-                                }
-                                if (previewBlocks[1]) {
-                                    previewBlocks[1].style.clipPath = 'polygon(100% 0%, 100% 0%, 100% 100%, 100% 100%)';
-                                }
-                            }
-                        }
-
-                        if (prevSlide) {
-                            const previewWrapper = prevSlide.querySelector('.preview-wrapper_reportage');
-                            if (previewWrapper) {
-                                const previewBlocks = previewWrapper.querySelectorAll('.preview-block_reportage');
-                                if (previewBlocks[0]) {
-                                    previewBlocks[0].style.clipPath = 'polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)';
-                                }
-                                if (previewBlocks[1]) {
-                                    previewBlocks[1].style.clipPath = 'polygon(100% 0%, 100% 0%, 100% 100%, 100% 100%)';
-                                }
-                            }
-                        }
-                    } else {
-                        if (typeof ScrollTrigger !== 'undefined') {
-                            ScrollTrigger.getAll().forEach(trigger => trigger.enable());
-                        }
-
-                        if (window.swiperInstance) {
-                            window.swiperInstance.allowSlideNext = true;
-                            window.swiperInstance.allowSlidePrev = true;
-                            window.swiperInstance.allowTouchMove = true;
-                        }
-
-                        const activeSlide = document.querySelector('.swiper-slide-active');
-                        const prevSlide = document.querySelector('.swiper-slide.is--prev-logical');
-
-                        if (activeSlide) {
-                            const previewWrapper = activeSlide.querySelector('.preview-wrapper_reportage');
-                            if (previewWrapper) {
-                                const previewBlocks = previewWrapper.querySelectorAll('.preview-block_reportage');
-                                if (previewBlocks[0]) {
-                                    previewBlocks[0].style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
-                                }
-                                if (previewBlocks[1]) {
-                                    previewBlocks[1].style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
-                                }
-                            }
-                        }
-
-                        if (prevSlide) {
-                            const previewWrapper = prevSlide.querySelector('.preview-wrapper_reportage');
-                            if (previewWrapper) {
-                                const previewBlocks = previewWrapper.querySelectorAll('.preview-block_reportage');
-                                if (previewBlocks[0]) {
-                                    previewBlocks[0].style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
-                                }
-                                if (previewBlocks[1]) {
-                                    previewBlocks[1].style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        },
-
-        initPosterBlockAnimations() {
-            const posterBlocks = document.querySelectorAll('.poster-block');
-            posterBlocks.forEach(posterBlock => {
-                if (posterBlock.dataset.posterAnimationsInitialized === 'true') return;
-                posterBlock.dataset.posterAnimationsInitialized = 'true';
-                ProjectApp.animations.addHoverAnimationToPosterBlock(posterBlock);
-            });
-        },
-
-        initBackgroundImageHover() {
-            if (window.innerWidth < 768) return;
-
-            let activeIndex = 0;
-            const bgVideos = document.querySelectorAll('.background-image'); // Keep same selector (assuming you renamed the class or these are now video elements)
-            let isTransitioning = false;
-
-            if (bgVideos.length >= 2) {
-                bgVideos[0].style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
-                bgVideos[0].style.zIndex = '2';
-                bgVideos[1].style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
-                bgVideos[1].style.zIndex = '1';
-            }
-
-            function handleProjectHover(projectItem) {
-                if (isTransitioning) return;
-
-                const listVideo = projectItem.querySelector('.list-video');
-                if (!listVideo) return;
-
-                const sourceElement = listVideo.querySelector('source');
-                if (!sourceElement) return;
-
-                const newSrc = sourceElement.src || sourceElement.getAttribute('src');
-                if (!newSrc) return;
-
-// Preload the video
-                if (!incoming.dataset.preloaded || incoming.dataset.preloadedSrc !== newSrc) {
-                    const preloadSource = incoming.querySelector('source');
-                    if (preloadSource) {
-                        preloadSource.src = newSrc;
-                    } else {
-                        incoming.src = newSrc;
-                    }
-                    incoming.load();
-                    incoming.dataset.preloaded = 'true';
-                    incoming.dataset.preloadedSrc = newSrc;
-                }
-
-                const currentVideo = bgVideos[activeIndex];
-
-                // Check if current background is video or has source
-                let currentSrc;
-                if (currentVideo.tagName === 'VIDEO') {
-                    const currentSource = currentVideo.querySelector('source');
-                    currentSrc = currentSource ? (currentSource.src || currentSource.getAttribute('src')) : currentVideo.src;
-                } else {
-                    currentSrc = currentVideo.src || currentVideo.getAttribute('src');
-                }
-
-                if (newSrc === currentSrc) return;
-
-                isTransitioning = true;
-                const nextIndex = activeIndex === 0 ? 1 : 0;
-                const incoming = bgVideos[nextIndex];
-                const current = bgVideos[activeIndex];
-
-                incoming.style.transition = 'none';
-                incoming.style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
-                incoming.style.zIndex = '5';
-
-                // Handle video element
-                if (incoming.tagName === 'VIDEO') {
-                    const incomingSource = incoming.querySelector('source');
-                    if (incomingSource) {
-                        incomingSource.src = newSrc;
-                    } else {
-                        incoming.src = newSrc;
-                    }
-
-                    // Reload video with new source
-                    incoming.load();
-
-                    // Wait for video to be ready
-                    const transitionVideos = () => {
-                        requestAnimationFrame(() => {
-                            // Play the incoming video
-                            incoming.play().catch(e => console.log('Background video play failed:', e));
-
-                            incoming.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1)';
-                            incoming.style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
-                            current.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1) 600ms';
-                            current.style.clipPath = 'polygon(0% 50%, 100% 50%, 100% 50%, 0% 50%)';
-                            current.style.zIndex = '4';
-
-                            setTimeout(() => {
-                                incoming.style.zIndex = '3';
-                                current.style.zIndex = '2';
-                                activeIndex = nextIndex;
-                                isTransitioning = false;
-
-                                // Pause the previous video
-                                if (current.tagName === 'VIDEO') {
-                                    current.pause();
-                                    current.currentTime = 0;
-                                }
-                            }, 600);
-                        });
-                    };
-
-                    // Check if video is ready
-                    if (incoming.readyState >= 3) { // HAVE_FUTURE_DATA or greater
-                        transitionVideos();
-                    } else {
-                        incoming.addEventListener('canplay', transitionVideos, { once: true });
-
-                        // Fallback timeout in case video doesn't load
-                        setTimeout(() => {
-                            if (isTransitioning) {
-                                transitionVideos();
-                            }
-                        }, 500);
-                    }
-                } else {
-                    // Fallback for image (in case you still have images)
-                    incoming.src = newSrc;
-
-                    const transitionImages = () => {
-                        requestAnimationFrame(() => {
-                            incoming.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1)';
-                            incoming.style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
-                            current.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1) 600ms';
-                            current.style.clipPath = 'polygon(0% 50%, 100% 50%, 100% 50%, 0% 50%)';
-                            current.style.zIndex = '4';
-
-                            setTimeout(() => {
-                                incoming.style.zIndex = '3';
-                                current.style.zIndex = '2';
-                                activeIndex = nextIndex;
-                                isTransitioning = false;
-                            }, 600);
-                        });
-                    };
-
-                    if (incoming.complete && incoming.naturalWidth !== 0) {
-                        transitionImages();
-                    } else {
-                        incoming.onload = transitionImages;
-                    }
-                }
-            }
-
-            document.querySelectorAll('.project-item').forEach(item => {
-                item.addEventListener('mouseenter', function() {
-                    handleProjectHover(this);
-                });
-            });
-
-            return handleProjectHover;
-        },
-
-        initBackgroundHoverBlock() {
-            const hoverWrappers = document.querySelectorAll('.hover-wrapper');
-
-            hoverWrappers.forEach(wrapper => {
-                const hoverBlock = wrapper.querySelector('.background-hover-block');
-                if (!hoverBlock) return;
-
-                const magnifiedImage = hoverBlock.querySelector('.magnified-image, img');
-                if (!magnifiedImage) return;
-
-                const hasPointer = window.matchMedia('(pointer: fine)').matches;
-                if (!hasPointer) return;
-
-                if (getComputedStyle(wrapper).position === 'static') {
-                    wrapper.style.position = 'relative';
-                }
-                wrapper.style.overflow = 'hidden';
-
-                hoverBlock.style.position = 'absolute';
-                hoverBlock.style.overflow = 'hidden';
-                hoverBlock.style.opacity = '0';
-                hoverBlock.style.pointerEvents = 'none';
-                hoverBlock.style.transition = 'opacity 0.5s cubic-bezier(0.75, 0, 0.25, 1)';
-
-                magnifiedImage.style.position = 'absolute';
-                magnifiedImage.style.objectFit = 'cover';
-
-                let isHovering = false;
-                let runAnimation = false;
-                let containerRect = null;
-                const magnification = 1.15;
-                const speed = 0.15;
-
-                let mouse = { x: 0, y: 0 };
-                let current = { x: 0, y: 0 };
-
-                const lerp = (start, end, factor) => start + (end - start) * factor;
-
-                const animate = () => {
-                    if (!runAnimation || !containerRect) return;
-
-                    current.x = lerp(current.x, mouse.x, speed);
-                    current.y = lerp(current.y, mouse.y, speed);
-
-                    const lensRect = hoverBlock.getBoundingClientRect();
-                    const lensWidth = lensRect.width;
-                    const lensHeight = lensRect.height;
-
-                    const relativeX = current.x - containerRect.left;
-                    const relativeY = current.y - containerRect.top;
-
-                    hoverBlock.style.left = `${relativeX - lensWidth / 2}px`;
-                    hoverBlock.style.top = `${relativeY - lensHeight / 2}px`;
-
-                    const percentX = relativeX / containerRect.width;
-                    const percentY = relativeY / containerRect.height;
-
-                    const imgWidth = containerRect.width * magnification;
-                    const imgHeight = containerRect.height * magnification;
-
-                    magnifiedImage.style.width = `${imgWidth}px`;
-                    magnifiedImage.style.height = `${imgHeight}px`;
-
-                    const offsetX = -percentX * imgWidth + lensWidth / 2;
-                    const offsetY = -percentY * imgHeight + lensHeight / 2;
-
-                    magnifiedImage.style.left = `${offsetX}px`;
-                    magnifiedImage.style.top = `${offsetY}px`;
-
-                    requestAnimationFrame(animate);
-                };
-
-                const updateMousePosition = (e) => {
-                    mouse.x = e.clientX;
-                    mouse.y = e.clientY;
-                };
-
-                const initializeOnWrapper = () => {
-                    containerRect = wrapper.getBoundingClientRect();
-
-                    const centerX = containerRect.left + containerRect.width / 2;
-                    const centerY = containerRect.top + containerRect.height / 2;
-
-                    mouse.x = centerX;
-                    mouse.y = centerY;
-                    current.x = centerX;
-                    current.y = centerY;
-
-                    hoverBlock.style.opacity = '1';
-
-                    runAnimation = true;
-                    animate();
-                };
-
-                const wrapperRect = wrapper.getBoundingClientRect();
-                const isInViewport = wrapperRect.top < window.innerHeight && wrapperRect.bottom > 0;
-
-                if (isInViewport) {
-                    setTimeout(initializeOnWrapper, 100);
-                }
-
-                wrapper.addEventListener('mouseenter', function(e) {
-                    if (!runAnimation) {
-                        initializeOnWrapper();
-                    }
-                    isHovering = true;
-                    mouse.x = e.clientX;
-                    mouse.y = e.clientY;
-                    hoverBlock.style.opacity = '1';
-                });
-
-                wrapper.addEventListener('mousemove', updateMousePosition);
-
-                wrapper.addEventListener('mouseleave', function() {
-                    isHovering = false;
-                    hoverBlock.style.opacity = '0';
-                });
-            });
-        },
-
-        addHoverAnimationToListItem(item) {
-            const wrappers = item.querySelectorAll('.video-hover-wrapper');
-            wrappers.forEach(wrap => {
-                const inner = wrap.querySelector('.video-hover-inner');
-                if (!inner) return;
-
-                if (getComputedStyle(wrap).position === 'static') {
-                    wrap.style.position = 'relative';
-                }
-                wrap.style.pointerEvents = 'auto';
-
-                inner.style.position = 'absolute';
-                inner.style.left = '50%';
-                inner.style.top = '50%';
-                inner.style.transform = 'translate(-50%, -50%)';
-                inner.style.pointerEvents = 'none';
-
-                let isHovering = false;
-
-                wrap.addEventListener('mouseenter', function(e) {
-                    isHovering = true;
-                    const r = wrap.getBoundingClientRect();
-                    const x = e.clientX - r.left;
-                    const y = e.clientY - r.top;
-                    inner.style.transform = `translate(calc(-50% + ${x - r.width/2}px), calc(-50% + ${y - r.height/2}px))`;
-                });
-
-                wrap.addEventListener('mousemove', function(e) {
-                    if (!isHovering) return;
-                    const r = wrap.getBoundingClientRect();
-                    const x = e.clientX - r.left;
-                    const y = e.clientY - r.top;
-                    inner.style.transform = `translate(calc(-50% + ${x - r.width/2}px), calc(-50% + ${y - r.height/2}px))`;
-                });
-
-                wrap.addEventListener('mouseleave', function() {
-                    isHovering = false;
-                    inner.style.transform = 'translate(-50%, -50%)';
-                });
-            });
-
-            if (ProjectApp.state.backgroundHoverHandler) {
-                item.addEventListener('mouseenter', function() {
-                    ProjectApp.state.backgroundHoverHandler(this);
-                });
-            }
-
-            const shuffleElements = item.querySelectorAll('[data-shuffle]');
-            shuffleElements.forEach(shuffleEl => {
-                ProjectApp.animations.initAlternatingShuffleForElement(shuffleEl);
-            });
-        },
-
-        initGuildsAnimations() {
-            const guildsElements = document.querySelectorAll('.guilds-image-wrapper [data-shuffle]');
-            guildsElements.forEach(element => {
-                ProjectApp.animations.initAlternatingShuffleForElement(element);
-            });
-        },
-
-        initPressAnimations() {
-            const pressElements = document.querySelectorAll('.press-hover[data-shuffle]');
-            pressElements.forEach(element => {
-                ProjectApp.animations.initAlternatingShuffleForElement(element);
-            });
-        },
-
-        cleanupLinkHover() {
-            ProjectApp.state.linkHoverState.items.forEach(r => {
-                try { r.link.removeEventListener('mouseenter', r.onEnter); } catch(e) {}
-                try { r.link.removeEventListener('mouseleave', r.onLeave); } catch(e) {}
-                try { window.removeEventListener('resize', r.onResize); } catch(e) {}
-
-                r.duplicateChars.forEach(d => d && d.parentNode && d.parentNode.removeChild(d));
-
-                try {
-                    r.split && r.split.revert && r.split.revert();
-                } catch(e) {}
-            });
-            ProjectApp.state.linkHoverState.items = [];
-        }
-    };
 
     (function () {
         ProjectApp.animations.cfg = ProjectApp.animations.cfg || {
@@ -8269,9 +7261,7 @@
 // }
 // };
 
- // ============================================
  // BARBA MANAGER
- // ============================================
  ProjectApp.barbaManager = {
      setBlockAlignments(blocks) {
          blocks.forEach((block, index) => {
@@ -8525,9 +7515,7 @@
      }
  };
 
- // ============================================
- // SHARED FEATURES (Run on Every Page)
- // ============================================
+ // SHARED FEATURES
  ProjectApp.initSharedFeatures = function() {
      console.log('Initializing shared features');
 
@@ -8566,9 +7554,7 @@
      }
  };
 
- // ============================================
  // WORK PAGE SPECIFIC INIT
- // ============================================
  ProjectApp.initWorkPage = function() {
      console.log('Initializing work page features');
 
@@ -8626,9 +7612,7 @@
      ProjectApp.animations.initPressAnimations();
  };
 
- // ============================================
  // WORK PAGE CLEANUP
- // ============================================
  ProjectApp.cleanupWorkPage = function() {
      console.log('Cleaning up work page');
 
@@ -8643,9 +7627,7 @@
      ProjectApp.viewSwitcher.cleanupSwitchAnimation();
  };
 
-     // ============================================
      // BOOTSTRAP
-     // ============================================
      (function() {
          ProjectApp.__bootDone = false;
 
@@ -8726,9 +7708,7 @@
          }
      })();
 
- // ============================================
- // PRELOADER (Only Once Per Session - Work Page Only)
- // ============================================
+ // PRELOADER
  (function() {
      document.addEventListener("DOMContentLoaded", function () {
          // Check if we're on the work page
