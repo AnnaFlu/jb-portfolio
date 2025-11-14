@@ -2569,7 +2569,7 @@
 
         if (mode === state.currentView) return;
 
-        const backgroundBlock = document.querySelector('.background-block.is--under');
+        const backgroundBlock = document.querySelector('.background-block');
         const hadIsOn = backgroundBlock?.classList.contains('is--on');
 
         if (hadIsOn && backgroundBlock) {
@@ -6940,6 +6940,7 @@
                         incoming.src = newSrc;
                     }
 
+                    incoming.loop = true;
                     incoming.load();
 
                     const transitionVideos = () => {
@@ -7011,6 +7012,7 @@
 
                     const listVideo = this.querySelector('.list-video');
                     if (listVideo && listVideo.tagName === 'VIDEO') {
+                        listVideo.loop = true;
                         listVideo.play().catch(e => console.log('List video play failed:', e));
                     }
                 });
@@ -7020,6 +7022,7 @@
                     if (listVideo && listVideo.tagName === 'VIDEO') {
                         listVideo.pause();
                         listVideo.currentTime = 0;
+                        listVideo.loop = false;
                     }
                 });
             });
