@@ -2557,7 +2557,6 @@
         updateVisible();
         state.archiveScrollInitialized = true;
     } catch (error) {
-        console.error('Error building virtual scroll:', error);
     }
     }
     },
@@ -3522,7 +3521,6 @@
                 }
 
                 if (typeof SplitType === 'undefined') {
-                    console.warn('SplitType not loaded');
                     return [];
                 }
 
@@ -5845,8 +5843,6 @@
                     clone.setAttribute('data-source-index', index);
                     wrapper.appendChild(clone);
                 });
-
-                console.log(`Duplicated ${slideCount} slides for better loop functionality`);
             }
         },
 
@@ -6893,14 +6889,14 @@
             if (window.innerWidth < 768) return;
 
             let activeIndex = 0;
-            const bgImages = document.querySelectorAll('.background-image');
+            const bgVideos = document.querySelectorAll('.background-image');
             let isTransitioning = false;
 
-            if (bgImages.length >= 2) {
-                bgImages[0].style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
-                bgImages[0].style.zIndex = '2';
-                bgImages[1].style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
-                bgImages[1].style.zIndex = '1';
+            if (bgVideos.length >= 2) {
+                bgVideos[0].style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
+                bgVideos[0].style.zIndex = '2';
+                bgVideos[1].style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
+                bgVideos[1].style.zIndex = '1';
             }
 
             function handleProjectHover(projectItem) {
@@ -6909,50 +6905,122 @@
                 const listVideo = projectItem.querySelector('.list-video');
                 if (!listVideo) return;
 
-                const newSrc = listVideo.src || listVideo.getAttribute('src');
+                const sourceElement = listVideo.querySelector('source');
+                if (!sourceElement) return;
+
+                const newSrc = sourceElement.src || sourceElement.getAttribute('src');
                 if (!newSrc) return;
 
-                const currentImage = bgImages[activeIndex];
-                const currentSrc = currentImage.src || currentImage.getAttribute('src');
+                const currentVideo = bgVideos[activeIndex];
+
+                let currentSrc;
+                if (currentVideo.tagName === 'VIDEO') {
+                    const currentSource = currentVideo.querySelector('source');
+                    currentSrc = currentSource ? (currentSource.src || currentSource.getAttribute('src')) : currentVideo.src;
+                } else {
+                    currentSrc = currentVideo.src || currentVideo.getAttribute('src');
+                }
+
                 if (newSrc === currentSrc) return;
 
                 isTransitioning = true;
                 const nextIndex = activeIndex === 0 ? 1 : 0;
-                const incoming = bgImages[nextIndex];
-                const current = bgImages[activeIndex];
+                const incoming = bgVideos[nextIndex];
+                const current = bgVideos[activeIndex];
 
                 incoming.style.transition = 'none';
                 incoming.style.clipPath = 'polygon(0 50%, 100% 50%, 100% 50%, 0 50%)';
                 incoming.style.zIndex = '5';
-                incoming.src = newSrc;
 
-                const transitionImages = () => {
-                    requestAnimationFrame(() => {
-                        incoming.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1)';
-                        incoming.style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
-                        current.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1) 600ms';
-                        current.style.clipPath = 'polygon(0% 50%, 100% 50%, 100% 50%, 0% 50%)';
-                        current.style.zIndex = '4';
+                if (incoming.tagName === 'VIDEO') {
+                    const incomingSource = incoming.querySelector('source');
+                    if (incomingSource) {
+                        incomingSource.src = newSrc;
+                    } else {
+                        incoming.src = newSrc;
+                    }
+
+                    incoming.load();
+
+                    const transitionVideos = () => {
+                        requestAnimationFrame(() => {
+                            incoming.play().catch(e => console.log('Background video play failed:', e));
+
+                            incoming.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1)';
+                            incoming.style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+                            current.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1) 600ms';
+                            current.style.clipPath = 'polygon(0% 50%, 100% 50%, 100% 50%, 0% 50%)';
+                            current.style.zIndex = '4';
+
+                            setTimeout(() => {
+                                incoming.style.zIndex = '3';
+                                current.style.zIndex = '2';
+                                activeIndex = nextIndex;
+                                isTransitioning = false;
+
+                                if (current.tagName === 'VIDEO') {
+                                    current.pause();
+                                    current.currentTime = 0;
+                                }
+                            }, 600);
+                        });
+                    };
+
+                    if (incoming.readyState >= 3) {
+                        transitionVideos();
+                    } else {
+                        incoming.addEventListener('canplay', transitionVideos, { once: true });
 
                         setTimeout(() => {
-                            incoming.style.zIndex = '3';
-                            current.style.zIndex = '2';
-                            activeIndex = nextIndex;
-                            isTransitioning = false;
-                        }, 600);
-                    });
-                };
-
-                if (incoming.complete && incoming.naturalWidth !== 0) {
-                    transitionImages();
+                            if (isTransitioning) {
+                                transitionVideos();
+                            }
+                        }, 500);
+                    }
                 } else {
-                    incoming.onload = transitionImages;
+                    incoming.src = newSrc;
+
+                    const transitionImages = () => {
+                        requestAnimationFrame(() => {
+                            incoming.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1)';
+                            incoming.style.clipPath = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+                            current.style.transition = 'clip-path 600ms cubic-bezier(0.75, 0, 0, 1) 600ms';
+                            current.style.clipPath = 'polygon(0% 50%, 100% 50%, 100% 50%, 0% 50%)';
+                            current.style.zIndex = '4';
+
+                            setTimeout(() => {
+                                incoming.style.zIndex = '3';
+                                current.style.zIndex = '2';
+                                activeIndex = nextIndex;
+                                isTransitioning = false;
+                            }, 600);
+                        });
+                    };
+
+                    if (incoming.complete && incoming.naturalWidth !== 0) {
+                        transitionImages();
+                    } else {
+                        incoming.onload = transitionImages;
+                    }
                 }
             }
 
             document.querySelectorAll('.project-item').forEach(item => {
                 item.addEventListener('mouseenter', function() {
                     handleProjectHover(this);
+
+                    const listVideo = this.querySelector('.list-video');
+                    if (listVideo && listVideo.tagName === 'VIDEO') {
+                        listVideo.play().catch(e => console.log('List video play failed:', e));
+                    }
+                });
+
+                item.addEventListener('mouseleave', function() {
+                    const listVideo = this.querySelector('.list-video');
+                    if (listVideo && listVideo.tagName === 'VIDEO') {
+                        listVideo.pause();
+                        listVideo.currentTime = 0;
+                    }
                 });
             });
 
@@ -7745,438 +7813,6 @@
     //     }
     // };
 
-    //    // BARBA MANAGER
- //    ProjectApp.barbaManager = {
- //     setBlockAlignments(blocks) {
- //         blocks.forEach((block, index) => {
- //             if (ProjectApp.state.blockAlignmentState === 'initial') {
- //                 block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
- //             } else {
- //                 block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
- //             }
- //         });
- //     },
- //
- //     swapBlockAlignments(blocks) {
- //         ProjectApp.state.blockAlignmentState =
- //             ProjectApp.state.blockAlignmentState === 'initial' ? 'swapped' : 'initial';
- //
- //         blocks.forEach((block, index) => {
- //             if (ProjectApp.state.blockAlignmentState === 'initial') {
- //                 block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
- //             } else {
- //                 block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
- //             }
- //         });
- //     },
- //
- //     prepareTransitionBlocks() {
- //         const blocks = document.querySelectorAll('.transition-block');
- //         blocks.forEach((block) => {
- //             gsap.set(block, {clearProps: 'height'});
- //         });
- //         ProjectApp.barbaManager.setBlockAlignments(blocks);
- //     },
- //
- //     updateActiveLinkByHref(href) {
- //         try {
- //             const url = new URL(href, window.location.origin);
- //             const links = Array.from(document.querySelectorAll('.nav-link-block'));
- //             links.forEach(a => a.classList.remove('is--active'));
- //
- //             const pqh = url.pathname + url.search + url.hash;
- //             let target = document.querySelector(`.nav-link-block[href="${pqh}"]`) ||
- //                 document.querySelector(`.nav-link-block[href="${url.pathname}"]`);
- //
- //             if (!target) {
- //                 target = links.find(a => {
- //                     try {
- //                         const aURL = new URL(a.getAttribute('href'), window.location.origin);
- //                         return aURL.pathname === url.pathname;
- //                     } catch(e) {
- //                         return false;
- //                     }
- //                 });
- //             }
- //
- //             if (target) target.classList.add('is--active');
- //         } catch(e) {}
- //     },
- //
- //     updateActiveLinkFromCurrentLocation() {
- //         ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
- //     },
- //
- //     init() {
- //         if (!window.barba || !window.barba.init) {
- //             return;
- //         }
- //
- //         if (window.barbaPrefetch && typeof barbaPrefetch !== 'undefined' && barba.use) {
- //             barba.use(barbaPrefetch);
- //         }
- //
- //         barba.init({
- //             preventRunning: true,
- //             prefetch: !!window.barbaPrefetch,
- //
- //             views: [
- //                 {
- //                     namespace: 'work',
- //                     afterEnter() {
- //                         ProjectApp.initWorkPage();
- //                     },
- //                     beforeLeave() {
- //                         ProjectApp.cleanupWorkPage();
- //                     }
- //                 },
- //                 {
- //                     namespace: 'archive',
- //                     afterEnter() {
- //                         if (ProjectApp.archivePageModule?.init) {
- //                             ProjectApp.archivePageModule.init();
- //                         }
- //                     },
- //                     beforeLeave() {
- //                         if (ProjectApp.archivePageModule?.cleanup) {
- //                             ProjectApp.archivePageModule.cleanup();
- //                         }
- //                     }
- //                 },
- //                 {
- //                     namespace: 'about',
- //                     afterEnter() {
- //                         if (ProjectApp.pageSpecificModule?.init) {
- //                             ProjectApp.pageSpecificModule.init();
- //                         }
- //                     },
- //                     beforeLeave() {
- //                         if (ProjectApp.pageSpecificModule?.cleanup) {
- //                             ProjectApp.pageSpecificModule.cleanup();
- //                         }
- //                     }
- //                 },
- //                 {
- //                     namespace: 'reportage',
- //                     afterEnter() {
- //                         if (ProjectApp.reportageSwiper?.init) {
- //                             ProjectApp.reportageSwiper.init();
- //                         }
- //                     },
- //                     beforeLeave() {
- //                         if (ProjectApp.reportageSwiper?.cleanup) {
- //                             ProjectApp.reportageSwiper.cleanup();
- //                         }
- //                     }
- //                 },
- //                 {
- //                     namespace: 'contact',
- //                     afterEnter() {
- //                     }
- //                 }
- //             ],
- //
- //             transitions: [{
- //                 name: 'default-transition',
- //
- //                 async leave(data) {
- //                     ProjectApp.state.isTransitioning = true;
- //
- //                     const cleanupModules = [
- //                         ProjectApp.listModule,
- //                         ProjectApp.swiperModule,
- //                         ProjectApp.pageSpecificModule,
- //                         ProjectApp.archivePageModule,
- //                         ProjectApp.reportageSwiper
- //                     ];
- //
- //                     cleanupModules.forEach(module => {
- //                         if (module?.cleanup) module.cleanup();
- //                     });
- //
- //                     Object.values(ProjectApp.swiperModule.swipers || {}).forEach(swiper => {
- //                         try {
- //                             if (swiper.mousewheel?.disable) swiper.mousewheel.disable();
- //                             swiper.allowTouchMove = false;
- //                             if (swiper.detachEvents) swiper.detachEvents();
- //                         } catch(e) {}
- //                     });
- //
- //                     ProjectApp.eventHandlers.cleanupSharedListeners();
- //                     ProjectApp.viewSwitcher.cleanupSwitchAnimation();
- //                     ProjectApp.animations.cleanupLinkHover();
- //                     ProjectApp.timeline.cleanupTimeline();
- //
- //                     document.querySelectorAll('video').forEach(v => v.pause());
- //
- //                     if (data?.trigger?.tagName) {
- //                         const href = data.trigger.getAttribute?.('href');
- //                         if (href && !href.startsWith('#') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
- //                             try {
- //                                 ProjectApp.barbaManager.updateActiveLinkByHref(new URL(href, window.location.origin).href);
- //                             } catch(e) {}
- //                         }
- //                     }
- //
- //                     const blocks = document.querySelectorAll('.transition-block');
- //                     ProjectApp.barbaManager.setBlockAlignments(blocks);
- //
- //                     const done = this.async();
- //
- //                     gsap.timeline({
- //                         onComplete: () => {
- //                             ProjectApp.barbaManager.swapBlockAlignments(blocks);
- //                             done();
- //                         }
- //                     })
- //                         .fromTo(blocks,
- //                             {height: '0%'},
- //                             {height: '100%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
- //                         );
- //                 },
- //
- //                 async enter(data) {
- //                     const next = data.next.container;
- //
- //                     await ProjectApp.utils.waitForImages(next);
- //
- //                     ProjectApp.utils.prepareVideos(next);
- //
- //                     ProjectApp.barbaManager.prepareTransitionBlocks();
- //                     const blocks = document.querySelectorAll('.transition-block');
- //
- //                     const done = this.async();
- //
- //                     gsap.timeline({
- //                         onComplete: () => {
- //                             ProjectApp.barbaManager.swapBlockAlignments(blocks);
- //                             ProjectApp.state.isTransitioning = false;
- //
- //                             ProjectApp.initSharedFeatures();
- //
- //                             if (ProjectApp.pageAnimations?.initAll) {
- //                                 ProjectApp.pageAnimations.initAll();
- //                             }
- //
- //                             done();
- //                         }
- //                     })
- //                         .fromTo(blocks,
- //                             {height: '100%'},
- //                             {height: '0%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
- //                         );
- //                 },
- //
- //                 async once(data) {
- //                     const container = data.next.container || data.current.container || document;
- //                     await ProjectApp.utils.waitForImages(container);
- //
- //                     try {
- //                         ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
- //                     } catch(e) {}
- //
- //                     const transitionBlocks = document.querySelectorAll('.transition-block');
- //                     ProjectApp.barbaManager.setBlockAlignments(transitionBlocks);
- //                 }
- //             }]
- //         });
- //
- //         if (barba.hooks?.after) {
- //             barba.hooks.after(() => {
- //                 ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
- //             });
- //         }
- //     }
- // };
- //
- //    // SHARED FEATURES
- //    ProjectApp.initSharedFeatures = function() {
- //     console.log('Initializing shared features');
- //
- //     // Text styling
- //     if (ProjectApp.textStyling?.init) {
- //         ProjectApp.textStyling.init();
- //     }
- //
- //     // ALL Animations (on every page)
- //     if (ProjectApp.animations) {
- //         ProjectApp.animations.initLinkHover();
- //         ProjectApp.state.backgroundHoverHandler = ProjectApp.animations.initBackgroundImageHover();
- //         ProjectApp.animations.initBackgroundHoverBlock();
- //         ProjectApp.animations.initGuildsAnimations();
- //         ProjectApp.animations.initPressAnimations();
- //     }
- //
- //     // Timeline
- //     if (ProjectApp.timeline?.initTimeline) {
- //         ProjectApp.timeline.initTimeline();
- //     }
- //
- //     // Event handlers
- //     if (ProjectApp.eventHandlers?.setupSharedListeners) {
- //         ProjectApp.eventHandlers.setupSharedListeners();
- //     }
- //
- //     // View switcher (includes mode state)
- //     if (ProjectApp.viewSwitcher?.initSwitchAnimation) {
- //         ProjectApp.viewSwitcher.initSwitchAnimation();
- //     }
- //
- //     // Apply background video mode state (NEW - call this AFTER initSwitchAnimation)
- //     if (ProjectApp.viewSwitcher?.applyModeState) {
- //         ProjectApp.viewSwitcher.applyModeState();
- //     }
- // };
- //
- //    // WORK PAGE INIT
- //    ProjectApp.initWorkPage = function() {
- //     console.log('Initializing work page features');
- //
- //     const activeOption = document.querySelector('.option-item.is--active');
- //     let desired = 'swiper';
- //
- //     if (activeOption) {
- //         if (activeOption.hasAttribute('data-list')) desired = 'list';
- //         if (activeOption.hasAttribute('data-swiper')) desired = 'swiper';
- //     } else {
- //         const projectCollection = document.querySelector('.project-collection');
- //         if (projectCollection && !ProjectApp.utils.isElementActuallyHidden(projectCollection)) {
- //             desired = 'list';
- //         }
- //     }
- //
- //     if (desired === 'swiper') {
- //         ProjectApp.state.currentView = 'swiper';
- //         const projectCollection = document.querySelector('.project-collection');
- //         const swipersContainer = document.querySelector('.swipers-container');
- //
- //         if (swipersContainer) swipersContainer.classList.remove('is--hidden');
- //         if (projectCollection) projectCollection.classList.add('is--hidden');
- //
- //         if (ProjectApp.swiperModule?.initAll) {
- //             ProjectApp.swiperModule.initAll();
- //         }
- //     } else {
- //         ProjectApp.state.currentView = 'list';
- //         const swipersContainer = document.querySelector('.swipers-container');
- //         const projectCollection = document.querySelector('.project-collection');
- //
- //         if (projectCollection) projectCollection.classList.remove('is--hidden');
- //         if (swipersContainer) swipersContainer.classList.add('is--hidden');
- //
- //         if (ProjectApp.listModule?.ensureListInit) {
- //             ProjectApp.listModule.ensureListInit();
- //         }
- //     }
- //
- //     // Initialize filter counts
- //     setTimeout(() => {
- //         if (ProjectApp.filterModule?.initializeTotalCounts) {
- //             ProjectApp.state.countsInitialized = false;
- //             ProjectApp.filterModule.initializeTotalCounts();
- //             ProjectApp.filterModule.updateCurrentTotalCount();
- //         }
- //     }, 200);
- //
- //     // ❌ REMOVE THIS - now in shared features
- //     // ProjectApp.viewSwitcher.initSwitchAnimation();
- //
- //     // Additional work page animations
- //     ProjectApp.animations.initGuildsAnimations();
- //     ProjectApp.animations.initPressAnimations();
- // };
- //
- //    // WORK PAGE CLEANUP
- //    ProjectApp.cleanupWorkPage = function() {
- //     console.log('Cleaning up work page');
- //
- //     if (ProjectApp.listModule?.cleanupInfiniteScroll) {
- //         ProjectApp.listModule.cleanupInfiniteScroll();
- //     }
- //
- //     if (ProjectApp.swiperModule?.cleanup) {
- //         ProjectApp.swiperModule.cleanup();
- //     }
- //
- //     ProjectApp.viewSwitcher.cleanupSwitchAnimation();
- // };
- //
- //     // BOOTSTRAP
- //     (function() {
- //         ProjectApp.__bootDone = false;
- //
- //         ProjectApp.__isCoreReady = function() {
- //             return !!(
- //                 ProjectApp.swiperModule?.initSwiper &&
- //                 ProjectApp.listModule?.ensureListInit &&
- //                 ProjectApp.animations?.initLinkHover &&
- //                 ProjectApp.barbaManager?.init
- //             );
- //         };
- //
- //         ProjectApp.bootstrap = function() {
- //             if (ProjectApp.__bootDone) return;
- //
- //             if (!ProjectApp.__isCoreReady()) {
- //                 return setTimeout(ProjectApp.bootstrap, 50);
- //             }
- //
- //             try {
- //                 ProjectApp.initSharedFeatures();
- //
- //                 const namespace = document.querySelector('[data-barba-namespace]')?.getAttribute('data-barba-namespace');
- //
- //                 switch(namespace) {
- //                     case 'work':
- //                         ProjectApp.initWorkPage();
- //                         break;
- //                     case 'archive':
- //                         if (ProjectApp.archivePageModule?.init) {
- //                             ProjectApp.archivePageModule.init();
- //                         }
- //                         break;
- //                     case 'about':
- //                         if (ProjectApp.pageSpecificModule?.init) {
- //                             ProjectApp.pageSpecificModule.init();
- //                         }
- //                         break;
- //                     case 'reportage':
- //                         if (ProjectApp.reportageSwiper?.init) {
- //                             ProjectApp.reportageSwiper.init();
- //                         }
- //                         break;
- //                     case 'contact':
- //                         break;
- //                     default:
- //                         console.log('Unknown namespace:', namespace);
- //                 }
- //
- //                 if (ProjectApp.pageAnimations?.initAll) {
- //                     ProjectApp.pageAnimations.initAll();
- //                 }
- //
- //             } catch(e) {
- //                 console.error('Init error:', e);
- //             }
- //
- //             try {
- //                 if (ProjectApp.barbaManager?.init) {
- //                     ProjectApp.barbaManager.init();
- //                 }
- //             } catch(e) {
- //                 console.error('Barba init error:', e);
- //             }
- //
- //             ProjectApp.__bootDone = true;
- //         };
- //
- //         if (document.readyState === 'loading') {
- //             document.addEventListener('DOMContentLoaded', ProjectApp.bootstrap);
- //         } else {
- //             ProjectApp.bootstrap();
- //         }
- //     })();
-
     // BARBA MANAGER
     ProjectApp.barbaManager = {
         setBlockAlignments(blocks) {
@@ -8241,7 +7877,6 @@
 
         init() {
             if (!window.barba || !window.barba.init) {
-                console.warn('Barba not found');
                 return;
             }
 
@@ -8251,24 +7886,21 @@
 
             barba.init({
                 preventRunning: true,
-                prefetch: true, // ✅ Always enable prefetching for performance
+                prefetch: true,
 
                 views: [
                     {
                         namespace: 'work',
                         afterEnter() {
-                            console.log('🟢 Work page afterEnter');
                             ProjectApp.initWorkPage();
                         },
                         beforeLeave() {
-                            console.log('🔴 Work page beforeLeave');
                             ProjectApp.cleanupWorkPage();
                         }
                     },
                     {
                         namespace: 'archive',
                         afterEnter() {
-                            console.log('🟠 Archive page afterEnter');
                             if (ProjectApp.archivePageModule?.init) {
                                 ProjectApp.archivePageModule.init();
                             }
@@ -8282,7 +7914,6 @@
                     {
                         namespace: 'about',
                         afterEnter() {
-                            console.log('🟡 About page afterEnter');
                             if (ProjectApp.pageSpecificModule?.init) {
                                 ProjectApp.pageSpecificModule.init();
                             }
@@ -8296,7 +7927,6 @@
                     {
                         namespace: 'reportage',
                         afterEnter() {
-                            console.log('🟤 Reportage page afterEnter');
                             if (ProjectApp.reportageSwiper?.init) {
                                 ProjectApp.reportageSwiper.init();
                             }
@@ -8310,7 +7940,6 @@
                     {
                         namespace: 'contact',
                         afterEnter() {
-                            console.log('⚪ Contact page afterEnter');
                         }
                     }
                 ],
@@ -8319,10 +7948,8 @@
                     name: 'default-transition',
 
                     async leave(data) {
-                        console.log('⬅️ Barba leave transition');
                         ProjectApp.state.isTransitioning = true;
 
-                        // Cleanup page-specific modules (views handle this too, but belt-and-suspenders)
                         const cleanupModules = [
                             ProjectApp.listModule,
                             ProjectApp.swiperModule,
@@ -8335,7 +7962,6 @@
                             if (module?.cleanup) module.cleanup();
                         });
 
-                        // Disable swiper interactions during transition
                         Object.values(ProjectApp.swiperModule.swipers || {}).forEach(swiper => {
                             try {
                                 if (swiper.mousewheel?.disable) swiper.mousewheel.disable();
@@ -8344,16 +7970,13 @@
                             } catch(e) {}
                         });
 
-                        // Cleanup shared features
                         ProjectApp.eventHandlers.cleanupSharedListeners();
                         ProjectApp.viewSwitcher.cleanupSwitchAnimation();
                         ProjectApp.animations.cleanupLinkHover();
                         ProjectApp.timeline.cleanupTimeline();
 
-                        // Pause all videos
                         document.querySelectorAll('video').forEach(v => v.pause());
 
-                        // Update active nav link
                         if (data?.trigger?.tagName) {
                             const href = data.trigger.getAttribute?.('href');
                             if (href && !href.startsWith('#') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
@@ -8381,13 +8004,10 @@
                     },
 
                     async enter(data) {
-                        console.log('➡️ Barba enter transition');
                         const next = data.next.container;
 
-                        // ✅ Wait for critical assets
                         await ProjectApp.utils.waitForImages(next);
 
-                        // ✅ Prepare videos (set sources, etc)
                         if (ProjectApp.utils.prepareVideos) {
                             ProjectApp.utils.prepareVideos(next);
                         }
@@ -8402,11 +8022,8 @@
                                 ProjectApp.barbaManager.swapBlockAlignments(blocks);
                                 ProjectApp.state.isTransitioning = false;
 
-                                // ✅ Reinitialize shared features (animations, timelines, etc)
-                                console.log('🔵 Reinitializing shared features');
                                 ProjectApp.initSharedFeatures();
 
-                                // ✅ Page animations (entrance effects)
                                 if (ProjectApp.pageAnimations?.initAll) {
                                     ProjectApp.pageAnimations.initAll();
                                 }
@@ -8421,8 +8038,6 @@
                     },
 
                     async once(data) {
-                        // ✅ Minimal setup on first load - bootstrap handles the rest
-                        console.log('🟣 Barba once hook');
 
                         const container = data.next.container || data.current.container || document;
                         await ProjectApp.utils.waitForImages(container);
@@ -8442,21 +8057,16 @@
                     ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
                 });
             }
-
-            console.log('✅ Barba initialized with prefetching enabled');
         }
     };
 
     // SHARED FEATURES
     ProjectApp.initSharedFeatures = function() {
-        console.log('🔵 Initializing shared features');
 
-        // Text styling
         if (ProjectApp.textStyling?.init) {
             ProjectApp.textStyling.init();
         }
 
-        // ALL Animations (on every page)
         if (ProjectApp.animations) {
             ProjectApp.animations.initLinkHover();
             ProjectApp.state.backgroundHoverHandler = ProjectApp.animations.initBackgroundImageHover();
@@ -8465,32 +8075,25 @@
             ProjectApp.animations.initPressAnimations();
         }
 
-        // Timeline
         if (ProjectApp.timeline?.initTimeline) {
             ProjectApp.timeline.initTimeline();
         }
 
-        // Event handlers
         if (ProjectApp.eventHandlers?.setupSharedListeners) {
             ProjectApp.eventHandlers.setupSharedListeners();
         }
 
-        // View switcher (includes mode state)
         if (ProjectApp.viewSwitcher?.initSwitchAnimation) {
             ProjectApp.viewSwitcher.initSwitchAnimation();
         }
 
-        // Apply background video mode state
         if (ProjectApp.viewSwitcher?.applyModeState) {
             ProjectApp.viewSwitcher.applyModeState();
         }
-
-        console.log('✅ Shared features initialized');
     };
 
     // WORK PAGE INIT
     ProjectApp.initWorkPage = function() {
-        console.log('🟢 Initializing work page features');
 
         const activeOption = document.querySelector('.option-item.is--active');
         let desired = 'swiper';
@@ -8529,7 +8132,6 @@
             }
         }
 
-        // Initialize filter counts
         setTimeout(() => {
             if (ProjectApp.filterModule?.initializeTotalCounts) {
                 ProjectApp.state.countsInitialized = false;
@@ -8538,16 +8140,12 @@
             }
         }, 200);
 
-        // Additional work page animations
         ProjectApp.animations.initGuildsAnimations();
         ProjectApp.animations.initPressAnimations();
-
-        console.log('✅ Work page initialized');
     };
 
     // WORK PAGE CLEANUP
     ProjectApp.cleanupWorkPage = function() {
-        console.log('🔴 Cleaning up work page');
 
         if (ProjectApp.listModule?.cleanupInfiniteScroll) {
             ProjectApp.listModule.cleanupInfiniteScroll();
@@ -8558,8 +8156,6 @@
         }
 
         ProjectApp.viewSwitcher.cleanupSwitchAnimation();
-
-        console.log('✅ Work page cleaned up');
     };
 
     // BOOTSTRAP
@@ -8567,51 +8163,31 @@
         ProjectApp.__bootDone = false;
 
         ProjectApp.__isCoreReady = function() {
-            console.log('🔍 Checking core modules:');
-            console.log('  swiperModule.initSwiper:', !!ProjectApp.swiperModule?.initSwiper);
-            console.log('  listModule.ensureListInit:', !!ProjectApp.listModule?.ensureListInit);
-            console.log('  animations.initLinkHover:', !!ProjectApp.animations?.initLinkHover);
-            console.log('  barbaManager.init:', !!ProjectApp.barbaManager?.init);
-
-            const ready = !!(
+            return !!(
                 ProjectApp.swiperModule?.initSwiper &&
                 ProjectApp.listModule?.ensureListInit &&
                 ProjectApp.animations?.initLinkHover &&
                 ProjectApp.barbaManager?.init
             );
-
-            console.log('  All ready?', ready);
-            return ready;
         };
 
         ProjectApp.bootstrap = function() {
             if (ProjectApp.__bootDone) {
-                console.log('⚠️ Bootstrap already complete - skipping');
                 return;
             }
 
             if (!ProjectApp.__isCoreReady()) {
-                console.log('⏳ Waiting for core modules...');
                 return setTimeout(ProjectApp.bootstrap, 50);
             }
 
-            console.log('🟡 Bootstrap starting');
-
             try {
-                // 1️⃣ FIRST: Initialize Barba (enables prefetching immediately)
-                console.log('🟣 Step 1: Initializing Barba');
                 if (ProjectApp.barbaManager?.init) {
                     ProjectApp.barbaManager.init();
                 }
 
-                // 2️⃣ THEN: Initialize shared features
-                console.log('🔵 Step 2: Initializing shared features');
                 ProjectApp.initSharedFeatures();
 
-                // 3️⃣ THEN: Initialize page-specific features
-                console.log('🏷️ Step 3: Detecting page namespace');
                 const namespace = document.querySelector('[data-barba-namespace]')?.getAttribute('data-barba-namespace');
-                console.log('   Namespace:', namespace);
 
                 switch(namespace) {
                     case 'work':
@@ -8633,22 +8209,15 @@
                         }
                         break;
                     case 'contact':
-                        console.log('⚪ Contact page - no specific init needed');
                         break;
                     default:
-                        console.warn('⚠️ Unknown namespace:', namespace);
                 }
 
-                // 4️⃣ FINALLY: Page entrance animations
-                console.log('✨ Step 4: Initializing page animations');
                 if (ProjectApp.pageAnimations?.initAll) {
                     ProjectApp.pageAnimations.initAll();
                 }
 
-                console.log('✅ Bootstrap complete!');
-
             } catch(e) {
-                console.error('❌ Bootstrap error:', e);
             }
 
             ProjectApp.__bootDone = true;
