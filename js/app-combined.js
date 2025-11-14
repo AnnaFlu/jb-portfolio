@@ -1,5 +1,5 @@
-window.ProjectApp = {
-    state: {
+    window.ProjectApp = {
+        state: {
     cachedItemHeight: null,
     scrollInitialized: false,
     scrollListener: null,
@@ -20,24 +20,24 @@ window.ProjectApp = {
     isScrolling: false,
     scrollTimeout: null
 },
-    utils: {},
-    templateManager: {},
-    listModule: {},
-    slideAnimations: {},
-    slidePresets: {},
-    swiperModule: {},
-    filterModule: {},
-    animations: {},
-    viewSwitcher: {},
-    barbaManager: {},
-    timeline: {},
-    eventHandlers: {},
-    archivePageModule: {},
-    pageSpecificModule: {},
-    reportageSwiper: {},
-    textStyling: {},
-    pageAnimations: {}
-};
+        utils: {},
+        templateManager: {},
+        listModule: {},
+        slideAnimations: {},
+        slidePresets: {},
+        swiperModule: {},
+        filterModule: {},
+        animations: {},
+        viewSwitcher: {},
+        barbaManager: {},
+        timeline: {},
+        eventHandlers: {},
+        archivePageModule: {},
+        pageSpecificModule: {},
+        reportageSwiper: {},
+        textStyling: {},
+        pageAnimations: {}
+    };
 
     const ProjectApp = window.ProjectApp;
 
@@ -47,120 +47,6 @@ window.ProjectApp = {
      CustomEase.create("transitionEase", "0.75, 0, 0, 1");
     }
 
-    /*    ProjectApp.utils = {
-    norm(str) {
-    return (str || '').trim().toLowerCase();
-},
-
-    isElementActuallyHidden(el) {
-    if (!el) return true;
-    const s = getComputedStyle(el);
-    if (s.display === 'none' || s.visibility === 'hidden' || s.opacity === '0') return true;
-    if (!el.offsetParent && s.position !== 'fixed') return true;
-    return false;
-},
-
-    withTemporarilyShown(el, fn) {
-    if (!el) return;
-
-    const prev = {
-    display: el.style.display,
-    visibility: el.style.visibility,
-    position: el.style.position,
-    left: el.style.left,
-    top: el.style.top,
-    pointerEvents: el.style.pointerEvents
-};
-
-    const needsTemp = ProjectApp.utils.isElementActuallyHidden(el);
-
-    if (needsTemp) {
-    el.style.visibility = 'hidden';
-    el.style.position = 'absolute';
-    el.style.left = '-99999px';
-    el.style.top = '-99999px';
-    el.style.pointerEvents = 'none';
-    el.style.display = 'block';
-}
-
-    try {
-    fn();
-} finally {
-    if (needsTemp) {
-    el.style.display = prev.display;
-    el.style.visibility = prev.visibility;
-    el.style.position = prev.position;
-    el.style.left = prev.left;
-    el.style.top = prev.top;
-    el.style.pointerEvents = prev.pointerEvents;
-}
-}
-},
-
-    waitForImages(container) {
-    const images = Array.from(container.querySelectorAll('img'));
-    const imgPromises = images.map(img => {
-    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-
-    return new Promise(res => {
-    const done = () => res();
-    img.addEventListener('load', done, {once: true});
-    img.addEventListener('error', done, {once: true});
-    setTimeout(done, 500);
-});
-});
-    return Promise.all(imgPromises);
-},
-
-    measureItemHeight(templates, projectList) {
-    if (!templates.length) return 0;
-
-    const probe = templates[0].cloneNode(true);
-    probe.style.position = 'absolute';
-    probe.style.left = '-99999px';
-    probe.style.top = '-99999px';
-    probe.style.visibility = 'hidden';
-    probe.style.width = '100%';
-
-    projectList.appendChild(probe);
-    const h = probe.getBoundingClientRect().height;
-    probe.remove();
-
-    return h;
-},
-
-    waitFor(testFn, timeoutMs, intervalMs) {
-    return new Promise((resolve) => {
-    const start = Date.now();
-    const iv = setInterval(() => {
-    let ok = false;
-    try { ok = !!testFn(); } catch (e) { ok = false; }
-    if (ok) { clearInterval(iv); resolve(true); return; }
-    if (Date.now() - start > (timeoutMs || 3000)) { clearInterval(iv); resolve(false); }
-}, intervalMs || 50);
-});
-},
-
-    prepareVideos(container) {
-    const videos = container.querySelectorAll('video');
-    videos.forEach(video => {
-    video.preload = 'metadata';
-    video.setAttribute('loading', 'lazy');
-
-    if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-    if (entry.isIntersecting) {
-    video.preload = 'auto';
-    observer.unobserve(video);
-}
-});
-}, { rootMargin: '50px' });
-    observer.observe(video);
-}
-});
-}
-};*/
     ProjectApp.utils = {
      norm(str) {
          return (str || '').trim().toLowerCase();
@@ -385,364 +271,362 @@ window.ProjectApp = {
 
     // SWIPER ANIMATIONS
     (function () {
-    const hasGSAP = () => typeof window !== 'undefined' && !!window.gsap;
-    const reduceMotion = () =>
-    typeof matchMedia === 'function' &&
-    matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const hasGSAP = () => typeof window !== 'undefined' && !!window.gsap;
+        const reduceMotion = () =>
+            typeof matchMedia === 'function' &&
+            matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    function collectEls(slide) {
-    return {
-    projectTop: slide.querySelector('.project-top'),
-    projectBottom: slide.querySelector('.project-bottom'),
-    videoWrappers: Array.from(slide.querySelectorAll('.video-wrapper, .video-spacer')),
-    previewWrapper: slide.querySelector('.preview-wrapper'),
-    previewTop: Array.from(slide.querySelectorAll('.preview-block.is--top')),
-    previewBottom: Array.from(slide.querySelectorAll('.preview-block.is--bottom')),
-    nameRightLines: Array.from(slide.querySelectorAll('.name-wrapper.has--align-right .name-xlarge .line')),
-    nameLeftLines: Array.from(slide.querySelectorAll('.name-wrapper.has--align-left .name-xlarge .line')),
-};
-}
+        function collectEls(slide) {
+            return {
+                projectTop: slide.querySelector('.project-top'),
+                projectBottom: slide.querySelector('.project-bottom'),
+                videoWrappers: Array.from(slide.querySelectorAll('.video-wrapper, .video-spacer')),
+                previewWrapper: slide.querySelector('.preview-wrapper'),
+                previewTop: Array.from(slide.querySelectorAll('.preview-block.is--top')),
+                previewBottom: Array.from(slide.querySelectorAll('.preview-block.is--bottom')),
+                nameRightLines: Array.from(slide.querySelectorAll('.name-wrapper.has--align-right .name-xlarge .line')),
+                nameLeftLines: Array.from(slide.querySelectorAll('.name-wrapper.has--align-left .name-xlarge .line')),
+            };
+        }
 
-    function setHiddenStates(slide) {
-    if (!hasGSAP() || !slide) return;
-    const {
-    projectTop,
-    projectBottom,
-    videoWrappers,
-    previewWrapper,
-    previewTop,
-    previewBottom,
-    nameRightLines,
-    nameLeftLines,
-} = collectEls(slide);
+        function setHiddenStates(slide) {
+            if (!hasGSAP() || !slide) return;
+            const {
+                projectTop,
+                projectBottom,
+                videoWrappers,
+                previewWrapper,
+                previewTop,
+                previewBottom,
+                nameRightLines,
+                nameLeftLines,
+            } = collectEls(slide);
 
-    if (projectTop) gsap.set(projectTop, { y: '100%' });
-    if (projectBottom) gsap.set(projectBottom, { y: '100%' });
+            if (projectTop) gsap.set(projectTop, { y: '100%' });
+            if (projectBottom) gsap.set(projectBottom, { y: '100%' });
 
-    if (videoWrappers.length)
-    gsap.set(videoWrappers, { clipPath: 'polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)' });
+            if (videoWrappers.length)
+                gsap.set(videoWrappers, { clipPath: 'polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)' });
 
-    if (previewWrapper) gsap.set(previewWrapper, { opacity: 0 });
+            if (previewWrapper) gsap.set(previewWrapper, { opacity: 0 });
 
-    if (previewBottom.length)
-    gsap.set(previewBottom, { clipPath: 'polygon(0 100%, 100% 100%, 100% 100%, 0% 100%)' });
-    if (previewTop.length)
-    gsap.set(previewTop, { clipPath: 'polygon(0 0%, 100% 0%, 100% 0%, 0 0%)' });
+            if (previewBottom.length)
+                gsap.set(previewBottom, { clipPath: 'polygon(0 100%, 100% 100%, 100% 100%, 0% 100%)' });
+            if (previewTop.length)
+                gsap.set(previewTop, { clipPath: 'polygon(0 0%, 100% 0%, 100% 0%, 0 0%)' });
 
-    if (nameRightLines.length) gsap.set(nameRightLines, { y: '110%' });
-    if (nameLeftLines.length) gsap.set(nameLeftLines, { y: '-110%' });
-}
+            if (nameRightLines.length) gsap.set(nameRightLines, { y: '110%' });
+            if (nameLeftLines.length) gsap.set(nameLeftLines, { y: '-110%' });
+        }
 
-    function clearProjectBlockInline(slide) {
-    if (!slide) return;
-    const blocks = slide.querySelectorAll('.video-wrapper');
-    blocks.forEach((el) => {
-    el.style.clipPath = '';
-    el.style.webkitClipPath = '';
-    el.style.transition = '';
-});
-    if (hasGSAP()) {
-    blocks.forEach((el) => gsap.set(el, { clearProps: 'clipPath,webkitClipPath,transition' }));
-}
-}
+        function clearProjectBlockInline(slide) {
+            if (!slide) return;
+            const blocks = slide.querySelectorAll('.video-wrapper');
+            blocks.forEach((el) => {
+                el.style.clipPath = '';
+                el.style.webkitClipPath = '';
+                el.style.transition = '';
+            });
+            if (hasGSAP()) {
+                blocks.forEach((el) => gsap.set(el, { clearProps: 'clipPath,webkitClipPath,transition' }));
+            }
+        }
 
-    ProjectApp.slideAnimations = {
-    animateSlideIn(slideElement, options = {}) {
-    if (!slideElement || !hasGSAP()) return Promise.resolve();
+        ProjectApp.slideAnimations = {
+            animateSlideIn(slideElement, options = {}) {
+                if (!slideElement || !hasGSAP()) return Promise.resolve();
 
-    const defaults = {
-    duration: 1,
-    ease: (gsap.parseEase && gsap.parseEase('power2.out')) || 'power2.out',
-    headingEase: (gsap.parseEase && gsap.parseEase('power2.out')) || 'power2.out',
-    stagger: 0.08,
-    onComplete: null,
-};
-    const s = { ...defaults, ...options };
+                const defaults = {
+                    duration: 1,
+                    ease: (gsap.parseEase && gsap.parseEase('power2.out')) || 'power2.out',
+                    headingEase: (gsap.parseEase && gsap.parseEase('power2.out')) || 'power2.out',
+                    stagger: 0.08,
+                    onComplete: null,
+                };
+                const s = { ...defaults, ...options };
 
-    if (reduceMotion()) {
-    const {
-    projectTop,
-    projectBottom,
-    videoWrappers,
-    previewWrapper,
-    previewTop,
-    previewBottom,
-    nameRightLines,
-    nameLeftLines,
-} = collectEls(slideElement);
+                if (reduceMotion()) {
+                    const {
+                        projectTop,
+                        projectBottom,
+                        videoWrappers,
+                        previewWrapper,
+                        previewTop,
+                        previewBottom,
+                        nameRightLines,
+                        nameLeftLines,
+                    } = collectEls(slideElement);
 
-    if (projectTop) gsap.set(projectTop, { y: '0%' });
-    if (projectBottom) gsap.set(projectBottom, { y: '0%' });
-    if (videoWrappers.length) gsap.set(videoWrappers, { clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' });
-    if (previewWrapper) gsap.set(previewWrapper, { opacity: 1 });
-    if (previewTop.length) gsap.set(previewTop, { clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' });
-    if (previewBottom.length) gsap.set(previewBottom, { clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' });
-    if (nameRightLines.length) gsap.set(nameRightLines, { y: '0%' });
-    if (nameLeftLines.length) gsap.set(nameLeftLines, { y: '0%' });
+                    if (projectTop) gsap.set(projectTop, { y: '0%' });
+                    if (projectBottom) gsap.set(projectBottom, { y: '0%' });
+                    if (videoWrappers.length) gsap.set(videoWrappers, { clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' });
+                    if (previewWrapper) gsap.set(previewWrapper, { opacity: 1 });
+                    if (previewTop.length) gsap.set(previewTop, { clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' });
+                    if (previewBottom.length) gsap.set(previewBottom, { clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' });
+                    if (nameRightLines.length) gsap.set(nameRightLines, { y: '0%' });
+                    if (nameLeftLines.length) gsap.set(nameLeftLines, { y: '0%' });
 
-    clearProjectBlockInline(slideElement);
-    s.onComplete && s.onComplete();
-    return Promise.resolve();
-}
+                    clearProjectBlockInline(slideElement);
+                    s.onComplete && s.onComplete();
+                    return Promise.resolve();
+                }
 
-    setHiddenStates(slideElement);
+                setHiddenStates(slideElement);
 
-    return new Promise((resolve) => {
-    const tl = gsap.timeline({
-    onComplete: () => {
-    clearProjectBlockInline(slideElement);
-    s.onComplete && s.onComplete();
-    resolve();
-},
-});
+                return new Promise((resolve) => {
+                    const tl = gsap.timeline({
+                        onComplete: () => {
+                            clearProjectBlockInline(slideElement);
+                            s.onComplete && s.onComplete();
+                            resolve();
+                        },
+                    });
 
-    const {
-    projectTop,
-    projectBottom,
-    videoWrappers,
-    previewWrapper,
-    previewTop,
-    previewBottom,
-    nameRightLines,
-    nameLeftLines,
-} = collectEls(slideElement);
+                    const {
+                        projectTop,
+                        projectBottom,
+                        videoWrappers,
+                        previewWrapper,
+                        previewTop,
+                        previewBottom,
+                        nameRightLines,
+                        nameLeftLines,
+                    } = collectEls(slideElement);
 
-    if (projectTop)
-    tl.fromTo(projectTop, { y: '100%' }, { y: '0%', duration: s.duration * 0.8, ease: s.ease, force3D: true }, 0);
+                    if (projectTop)
+                        tl.fromTo(projectTop, { y: '100%' }, { y: '0%', duration: s.duration * 0.8, ease: s.ease, force3D: true }, 0);
 
-    if (projectBottom)
-    tl.fromTo(projectBottom, { y: '100%' }, { y: '0%', duration: s.duration * 0.8, ease: s.ease, force3D: true }, 0);
+                    if (projectBottom)
+                        tl.fromTo(projectBottom, { y: '100%' }, { y: '0%', duration: s.duration * 0.8, ease: s.ease, force3D: true }, 0);
 
-    if (videoWrappers.length)
-    tl.fromTo(
-    videoWrappers,
-{ clipPath: 'polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)' },
-{ clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', duration: s.duration * 0.8, ease: s.ease },
-    0
-    );
+                    if (videoWrappers.length)
+                        tl.fromTo(
+                            videoWrappers,
+                            { clipPath: 'polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)' },
+                            { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', duration: s.duration * 0.8, ease: s.ease },
+                            0
+                        );
 
-    if (nameRightLines.length)
-    tl.fromTo(
-    nameRightLines,
-{ y: '110%' },
-{ y: '0%', duration: s.duration, ease: s.headingEase, stagger: s.stagger, clearProps: 'transform' },
-    0
-    );
+                    if (nameRightLines.length)
+                        tl.fromTo(
+                            nameRightLines,
+                            { y: '110%' },
+                            { y: '0%', duration: s.duration, ease: s.headingEase, stagger: s.stagger, clearProps: 'transform' },
+                            0
+                        );
 
-    if (nameLeftLines.length)
-    tl.fromTo(
-    nameLeftLines,
-{ y: '-110%' },
-{ y: '0%', duration: s.duration, ease: s.headingEase, stagger: s.stagger, clearProps: 'transform' },
-    0
-    );
+                    if (nameLeftLines.length)
+                        tl.fromTo(
+                            nameLeftLines,
+                            { y: '-110%' },
+                            { y: '0%', duration: s.duration, ease: s.headingEase, stagger: s.stagger, clearProps: 'transform' },
+                            0
+                        );
 
-    if (previewWrapper)
-    tl.fromTo(previewWrapper, { opacity: 0 }, { opacity: 1, duration: s.duration * 0.8, ease: s.ease }, 0);
+                    if (previewWrapper)
+                        tl.fromTo(previewWrapper, { opacity: 0 }, { opacity: 1, duration: s.duration * 0.8, ease: s.ease }, 0);
 
-    if (previewBottom.length)
-    tl.fromTo(
-    previewBottom,
-{ clipPath: 'polygon(0 100%, 100% 100%, 100% 100%, 0% 100%)' },
-{ clipPath: 'polygon(0 0%, 100% 0%, 100% 100%, 0% 100%)', duration: s.duration, ease: s.ease },
-    0
-    );
+                    if (previewBottom.length)
+                        tl.fromTo(
+                            previewBottom,
+                            { clipPath: 'polygon(0 100%, 100% 100%, 100% 100%, 0% 100%)' },
+                            { clipPath: 'polygon(0 0%, 100% 0%, 100% 100%, 0% 100%)', duration: s.duration, ease: s.ease },
+                            0
+                        );
 
-    if (previewTop.length)
-    tl.fromTo(
-    previewTop,
-{ clipPath: 'polygon(0 0%, 100% 0%, 100% 0%, 0 0%)' },
-{ clipPath: 'polygon(0 0%, 100% 0%, 100% 100%, 0% 100%)', duration: s.duration, ease: s.ease },
-    0
-    );
+                    if (previewTop.length)
+                        tl.fromTo(
+                            previewTop,
+                            { clipPath: 'polygon(0 0%, 100% 0%, 100% 0%, 0 0%)' },
+                            { clipPath: 'polygon(0 0%, 100% 0%, 100% 100%, 0% 100%)', duration: s.duration, ease: s.ease },
+                            0
+                        );
 
-    if (!tl.getChildren().length) {
-    clearProjectBlockInline(slideElement);
-    resolve();
-}
-});
-},
+                    if (!tl.getChildren().length) {
+                        clearProjectBlockInline(slideElement);
+                        resolve();
+                    }
+                });
+            },
 
-    setSlideHidden(slideElement) {
-    setHiddenStates(slideElement);
-},
+            setSlideHidden(slideElement) {
+                setHiddenStates(slideElement);
+            },
 
-    animatePreloaderSlideIn(swiperEl) {
-    const container = swiperEl || document.querySelector('.swiper.is--visible, .swiper.is-visible');
-    if (!container) return Promise.resolve();
+            animatePreloaderSlideIn(swiperEl) {
+                const container = swiperEl || document.querySelector('.swiper.is--visible, .swiper.is-visible');
+                if (!container) return Promise.resolve();
 
-    return new Promise((resolve) => {
-    let tries = 0;
-    const maxTries = 20;
-    const tick = () => {
-    const active = container.querySelector('.swiper-slide-active, .is--active-logical');
-    if (active) {
-    this.setSlideHidden(active);
-    this.animateSlideIn(active, {
-    duration: 1,
-    headingEase: (gsap.parseEase && gsap.parseEase('power2.out')) || 'power2.out',
-    ease: (gsap.parseEase && gsap.parseEase('power2.out')) || 'power2.out',
-    stagger: 0.08,
-}).then(resolve);
-} else if (tries++ < maxTries) {
-    requestAnimationFrame(tick);
-} else {
-    resolve();
-}
-};
-    requestAnimationFrame(tick);
-});
-},
+                return new Promise((resolve) => {
+                    let tries = 0;
+                    const maxTries = 20;
+                    const tick = () => {
+                        const active = container.querySelector('.swiper-slide-active, .is--active-logical');
+                        if (active) {
+                            this.setSlideHidden(active);
+                            this.animateSlideIn(active, {
+                                duration: 1,
+                                headingEase: (gsap.parseEase && gsap.parseEase('power2.out')) || 'power2.out',
+                                ease: (gsap.parseEase && gsap.parseEase('power2.out')) || 'power2.out',
+                                stagger: 0.08,
+                            }).then(resolve);
+                        } else if (tries++ < maxTries) {
+                            requestAnimationFrame(tick);
+                        } else {
+                            resolve();
+                        }
+                    };
+                    requestAnimationFrame(tick);
+                });
+            },
 
-    hideNonActiveInContainer(container) {
-    if (!container) return;
-    const active = container.querySelector('.swiper-slide-active, .is--active-logical');
-    container.querySelectorAll('.swiper-slide').forEach((s) => {
-    if (s !== active) setHiddenStates(s);
-});
-},
+            hideNonActiveInContainer(container) {
+                if (!container) return;
+                const active = container.querySelector('.swiper-slide-active, .is--active-logical');
+                container.querySelectorAll('.swiper-slide').forEach((s) => {
+                    if (s !== active) setHiddenStates(s);
+                });
+            },
 
-    animateActiveInContainer(container, options) {
-    if (!container) return Promise.resolve();
-    const active = container.querySelector('.swiper-slide-active, .is--active-logical');
-    if (!active) return Promise.resolve();
-    setHiddenStates(active);
-    return this.animateSlideIn(active, options);
-},
+            animateActiveInContainer(container, options) {
+                if (!container) return Promise.resolve();
+                const active = container.querySelector('.swiper-slide-active, .is--active-logical');
+                if (!active) return Promise.resolve();
+                setHiddenStates(active);
+                return this.animateSlideIn(active, options);
+            },
 
-    deactivateContainer(container) {
-    if (!container || !hasGSAP()) return;
-    const nodes = container.querySelectorAll(
-    '.swiper-slide, .project-top, .project-bottom, .video-wrapper, .preview-wrapper, .video-spacer, .preview-block, .name-wrapper .line'
-    );
-    container.querySelectorAll('.swiper-slide').forEach(setHiddenStates);
-},
+            deactivateContainer(container) {
+                if (!container || !hasGSAP()) return;
+                const nodes = container.querySelectorAll(
+                    '.swiper-slide, .project-top, .project-bottom, .video-wrapper, .preview-wrapper, .video-spacer, .preview-block, .name-wrapper .line'
+                );
+                container.querySelectorAll('.swiper-slide').forEach(setHiddenStates);
+            },
 
-    bindSlideChangeForSwiper(swiper) {
-    if (!swiper || swiper._paBound) return;
-    swiper._paBound = true;
+            bindSlideChangeForSwiper(swiper) {
+                if (!swiper || swiper._paBound) return;
+                swiper._paBound = true;
 
-    swiper.on('init', () => {
-    const root = swiper.el;
-    this.hideNonActiveInContainer(root);
-    this.animateActiveInContainer(root, { duration: 0.75 });
-});
+                swiper.on('init', () => {
+                    const root = swiper.el;
+                    this.hideNonActiveInContainer(root);
+                    this.animateActiveInContainer(root, { duration: 0.75 });
+                });
 
-    swiper.on('slideChangeTransitionStart', () => {
-    const prev = swiper.slides?.[swiper.previousIndex];
-    const next = swiper.slides?.[swiper.activeIndex];
-    if (prev && prev !== next) setHiddenStates(prev);
-    if (next) {
-    if (hasGSAP()) {
-    const nodes = next.querySelectorAll(
-    '.project-top, .project-bottom, .video-wrapper, .preview-wrapper, .video-spacer, .preview-block, .name-wrapper .line'
-    );
-}
-    setHiddenStates(next);
-    this.animateSlideIn(next, { duration: 0.75 });
-}
-});
-},
-};
+                swiper.on('slideChangeTransitionStart', () => {
+                    const prev = swiper.slides?.[swiper.previousIndex];
+                    const next = swiper.slides?.[swiper.activeIndex];
+                    if (prev && prev !== next) setHiddenStates(prev);
+                    if (next) {
+                        if (hasGSAP()) {
+                            const nodes = next.querySelectorAll(
+                                '.project-top, .project-bottom, .video-wrapper, .preview-wrapper, .video-spacer, .preview-block, .name-wrapper .line'
+                            );
+                        }
+                        setHiddenStates(next);
+                        this.animateSlideIn(next, { duration: 0.75 });
+                    }
+                });
+            },
+        };
 
-    ProjectApp.slidePresets = {
-    setSlideElementsHidden(slideElement) {
-    ProjectApp.slideAnimations.setSlideHidden(slideElement);
-},
-    setPrevSlidesHidden(slideElement) {
-    if (!slideElement || !hasGSAP()) return;
-    gsap.set(slideElement, {visibility: 'hidden'});
-},
-    setLogicalPrevHidden(slideElement) {
-    this.setPrevSlidesHidden(slideElement);
-},
-    resetSlideElements(slideElement) {
-    ProjectApp.slideAnimations.animateSlideIn(slideElement, {duration: 0});
-},
-    resetPrevSlidesVisibility(slideElement) {
-    if (!slideElement || !hasGSAP()) return;
-    gsap.set(slideElement, {visibility: 'visible'});
-},
+        ProjectApp.slidePresets = {
+            setSlideElementsHidden(slideElement) {
+                ProjectApp.slideAnimations.setSlideHidden(slideElement);
+            },
+            setPrevSlidesHidden(slideElement) {
+                if (!slideElement || !hasGSAP()) return;
+                gsap.set(slideElement, {visibility: 'hidden'});
+            },
+            setLogicalPrevHidden(slideElement) {
+                this.setPrevSlidesHidden(slideElement);
+            },
+            resetSlideElements(slideElement) {
+                ProjectApp.slideAnimations.animateSlideIn(slideElement, {duration: 0});
+            },
+            resetPrevSlidesVisibility(slideElement) {
+                if (!slideElement || !hasGSAP()) return;
+                gsap.set(slideElement, {visibility: 'visible'});
+            },
 
-    activateSwiperContainer(containerEl) {
-    ProjectApp.slideAnimations.hideNonActiveInContainer(containerEl);
-    return ProjectApp.slideAnimations.animateActiveInContainer(containerEl, {duration: 0.8});
-},
+            activateSwiperContainer(containerEl) {
+                ProjectApp.slideAnimations.hideNonActiveInContainer(containerEl);
+                return ProjectApp.slideAnimations.animateActiveInContainer(containerEl, {duration: 0.8});
+            },
 
-    deactivateSwiperContainer(containerEl) {
-    ProjectApp.slideAnimations.deactivateContainer(containerEl);
-},
-};
-})();
+            deactivateSwiperContainer(containerEl) {
+                ProjectApp.slideAnimations.deactivateContainer(containerEl);
+            },
+        };
+    })();
 
     // ProjectApp.state = ProjectApp.state || {};
     // ProjectApp.animations = ProjectApp.animations || {};
     // ProjectApp.utils = ProjectApp.utils || {};
 
+    // SWIPER MODULE
     (function(){
-    const hasGSAP = ()=> typeof window.gsap !== 'undefined';
-    const EZ = 'headingHoverEase';
-    const D  = .8;
-    const qAll = (slide, sel)=> slide ? slide.querySelectorAll(sel) : [];
-    const q    = (slide, sel)=> slide ? slide.querySelector(sel) : null;
+        const hasGSAP = ()=> typeof window.gsap !== 'undefined';
+        const EZ = 'headingHoverEase';
+        const D  = .8;
+        const qAll = (slide, sel)=> slide ? slide.querySelectorAll(sel) : [];
+        const q    = (slide, sel)=> slide ? slide.querySelector(sel) : null;
 
-    ProjectApp.slideAnimations = ProjectApp.slideAnimations || {
-    setSlideHidden(slide){
-    if (!slide) return;
-    qAll(slide, '.name-wrapper.has--align-right .name-xlarge .line').forEach(l=> l.style.transform = 'translateY(110%)');
-    qAll(slide, '.name-wrapper.has--align-left  .name-xlarge .line').forEach(l=> l.style.transform = 'translateY(-110%)');
-    qAll(slide, '.project-block, .background-video-block').forEach(el=> el.style.clipPath = 'polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)');
-    qAll(slide, '.preview-block.is--top .preview-video').forEach(el=> el.style.clipPath = 'polygon(0 0%, 100% 0%, 100% 0%, 0 0%)');
-    qAll(slide, '.preview-block.is--bottom .preview-video').forEach(el=> el.style.clipPath = 'polygon(0 100%, 100% 100%, 100% 100%, 0 100%)');
+        ProjectApp.slideAnimations = ProjectApp.slideAnimations || {
+            setSlideHidden(slide){
+                if (!slide) return;
+                qAll(slide, '.name-wrapper.has--align-right .name-xlarge .line').forEach(l=> l.style.transform = 'translateY(110%)');
+                qAll(slide, '.name-wrapper.has--align-left  .name-xlarge .line').forEach(l=> l.style.transform = 'translateY(-110%)');
+                qAll(slide, '.project-block, .background-video-block').forEach(el=> el.style.clipPath = 'polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)');
+                qAll(slide, '.preview-block.is--top .preview-video').forEach(el=> el.style.clipPath = 'polygon(0 0%, 100% 0%, 100% 0%, 0 0%)');
+                qAll(slide, '.preview-block.is--bottom .preview-video').forEach(el=> el.style.clipPath = 'polygon(0 100%, 100% 100%, 100% 100%, 0 100%)');
 
-},
-    collapseBG(slide, d=D, ez=EZ){
-    if (!hasGSAP() || !slide) return gsap.timeline();
-    const tl = gsap.timeline();
-    const bgBlocks = qAll(slide, '.background-video-block');
-    if (bgBlocks.length) tl.to(bgBlocks, { clipPath:'polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)', duration:d, ease:ez }, 0);
-    return tl;
-},
-    revealBG(slide, d=D, ez=EZ){
-    if (!hasGSAP() || !slide) return gsap.timeline();
-    const tl = gsap.timeline();
-    const bgBlocks = qAll(slide, '.background-video-block');
-    if (bgBlocks.length) tl.to(bgBlocks, { clipPath:'polygon(0 0, 100% 0, 100% 100%, 0 100%)', duration:d, ease:ez }, 0);
-    return tl;
-},
-    animateSlideIn(slide, opts={}){
-    if (!hasGSAP() || !slide) return Promise.resolve();
-    const d = opts.duration || D;
-    const ez = opts.ease || EZ;
-    const stagger = opts.stagger || 0.08;
-    const projectDelay = (typeof opts.projectDelay === 'number') ? opts.projectDelay : .18;
-    const onComplete = typeof opts.onComplete === 'function' ? opts.onComplete : null;
-    return new Promise(resolve=>{
-    const tl = gsap.timeline({ defaults:{ ease: ez }, onComplete: ()=>{ onComplete && onComplete(); resolve(); } });
-    const bgBlocks = qAll(slide, '.background-video-block');
-    if (bgBlocks.length) tl.to(bgBlocks, { clipPath:'polygon(0 0, 100% 0, 100% 100%, 0 100%)', duration:d }, 0);
-    qAll(slide, '.name-wrapper.has--align-right .name-xlarge .line').forEach((line,i)=> tl.to(line, { y:'0%', duration:d, ease:ez, delay:i*stagger }, 0));
-    qAll(slide, '.name-wrapper.has--align-left  .name-xlarge .line').forEach((line,i)=> tl.to(line, { y:'0%', duration:d, ease:ez, delay:i*stagger }, 0));
-    const projectTop    = q(slide, '.project-top');
-    const projectBottom = q(slide, '.project-bottom');
-    if (projectTop)    tl.to(projectTop,    { y:'0%', duration:d }, projectDelay);
-    if (projectBottom) tl.to(projectBottom, { y:'0%', duration:d }, projectDelay);
-    qAll(slide, '.project-block').forEach((b,i)=> tl.to(b, { clipPath:'polygon(0 0, 100% 0, 100% 100%, 0 100%)', duration:d, }, 0));
-    qAll(slide, '.preview-block.is--top .preview-video').forEach(el=> tl.to(el, { clipPath:'polygon(0 0, 100% 0, 100% 100%, 0 100%)', duration:d }, 0));
-    qAll(slide, '.preview-block.is--bottom .preview-video').forEach(el=> tl.to(el, { clipPath:'polygon(0 0, 100% 0, 100% 100%, 0 100%)', duration:d }, 0));
-});
-}
-};
+            },
+            collapseBG(slide, d=D, ez=EZ){
+                if (!hasGSAP() || !slide) return gsap.timeline();
+                const tl = gsap.timeline();
+                const bgBlocks = qAll(slide, '.background-video-block');
+                if (bgBlocks.length) tl.to(bgBlocks, { clipPath:'polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)', duration:d, ease:ez }, 0);
+                return tl;
+            },
+            revealBG(slide, d=D, ez=EZ){
+                if (!hasGSAP() || !slide) return gsap.timeline();
+                const tl = gsap.timeline();
+                const bgBlocks = qAll(slide, '.background-video-block');
+                if (bgBlocks.length) tl.to(bgBlocks, { clipPath:'polygon(0 0, 100% 0, 100% 100%, 0 100%)', duration:d, ease:ez }, 0);
+                return tl;
+            },
+            animateSlideIn(slide, opts={}){
+                if (!hasGSAP() || !slide) return Promise.resolve();
+                const d = opts.duration || D;
+                const ez = opts.ease || EZ;
+                const stagger = opts.stagger || 0.08;
+                const projectDelay = (typeof opts.projectDelay === 'number') ? opts.projectDelay : .18;
+                const onComplete = typeof opts.onComplete === 'function' ? opts.onComplete : null;
+                return new Promise(resolve=>{
+                    const tl = gsap.timeline({ defaults:{ ease: ez }, onComplete: ()=>{ onComplete && onComplete(); resolve(); } });
+                    const bgBlocks = qAll(slide, '.background-video-block');
+                    if (bgBlocks.length) tl.to(bgBlocks, { clipPath:'polygon(0 0, 100% 0, 100% 100%, 0 100%)', duration:d }, 0);
+                    qAll(slide, '.name-wrapper.has--align-right .name-xlarge .line').forEach((line,i)=> tl.to(line, { y:'0%', duration:d, ease:ez, delay:i*stagger }, 0));
+                    qAll(slide, '.name-wrapper.has--align-left  .name-xlarge .line').forEach((line,i)=> tl.to(line, { y:'0%', duration:d, ease:ez, delay:i*stagger }, 0));
+                    const projectTop    = q(slide, '.project-top');
+                    const projectBottom = q(slide, '.project-bottom');
+                    if (projectTop)    tl.to(projectTop,    { y:'0%', duration:d }, projectDelay);
+                    if (projectBottom) tl.to(projectBottom, { y:'0%', duration:d }, projectDelay);
+                    qAll(slide, '.project-block').forEach((b,i)=> tl.to(b, { clipPath:'polygon(0 0, 100% 0, 100% 100%, 0 100%)', duration:d, }, 0));
+                    qAll(slide, '.preview-block.is--top .preview-video').forEach(el=> tl.to(el, { clipPath:'polygon(0 0, 100% 0, 100% 100%, 0 100%)', duration:d }, 0));
+                    qAll(slide, '.preview-block.is--bottom .preview-video').forEach(el=> tl.to(el, { clipPath:'polygon(0 0, 100% 0, 100% 100%, 0 100%)', duration:d }, 0));
+                });
+            }
+        };
 
-    ProjectApp.slidePresets = ProjectApp.slidePresets || {};
+        ProjectApp.slidePresets = ProjectApp.slidePresets || {};
 
-    ProjectApp.animations.addHoverAnimationToSwiperSlides =
-    ProjectApp.animations.addHoverAnimationToSwiperSlides || function(){};
+        ProjectApp.animations.addHoverAnimationToSwiperSlides =
+            ProjectApp.animations.addHoverAnimationToSwiperSlides || function(){};
     })();
 
-    // ============================================
-    // SWIPER MODULE
-    // ============================================
     ProjectApp.swiperModule = {
     swipers: {},
     _two(n){ n = Number(n)||0; return n<10 ? ('0'+n) : String(n); },
@@ -6865,7 +6749,6 @@ window.ProjectApp = {
     };
 
     // ANIMATIONS
-    // ============================================
 
     (function () {
         ProjectApp.animations.cfg = ProjectApp.animations.cfg || {
@@ -6959,310 +6842,204 @@ window.ProjectApp = {
         }
     })();
 
-    // ============================================
-    // BARBA MANAGER
-    // ============================================
-//     ProjectApp.barbaManager = {
-//     setBlockAlignments(blocks) {
-//     blocks.forEach((block, index) => {
-//     if (ProjectApp.state.blockAlignmentState === 'initial') {
-//     block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
-// } else {
-//     block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
-// }
-// });
-// },
-//
-//     swapBlockAlignments(blocks) {
-//     ProjectApp.state.blockAlignmentState =
-//     ProjectApp.state.blockAlignmentState === 'initial' ? 'swapped' : 'initial';
-//
-//     blocks.forEach((block, index) => {
-//     if (ProjectApp.state.blockAlignmentState === 'initial') {
-//     block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
-// } else {
-//     block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
-// }
-// });
-// },
-//
-//     prepareTransitionBlocks() {
-//     const blocks = document.querySelectorAll('.transition-block');
-//     blocks.forEach((block) => {
-//     gsap.set(block, {clearProps: 'height'});
-// });
-//     ProjectApp.barbaManager.setBlockAlignments(blocks);
-// },
-//
-//     updateActiveLinkByHref(href) {
-//     try {
-//     const url = new URL(href, window.location.origin);
-//     const links = Array.from(document.querySelectorAll('.nav-link-block'));
-//     links.forEach(a => a.classList.remove('is--active'));
-//
-//     const pqh = url.pathname + url.search + url.hash;
-//     let target = document.querySelector(`.nav-link-block[href="${pqh}"]`) ||
-//     document.querySelector(`.nav-link-block[href="${url.pathname}"]`);
-//
-//     if (!target) {
-//     target = links.find(a => {
-//     try {
-//     const aURL = new URL(a.getAttribute('href'), window.location.origin);
-//     return aURL.pathname === url.pathname;
-// } catch(e) {
-//     return false;
-// }
-// });
-// }
-//
-//     if (target) target.classList.add('is--active');
-// } catch(e) {}
-// },
-//
-//     init() {
-//     if (!window.barba || !window.barba.init) {
-//     return;
-// }
-//
-//     if (window.barbaPrefetch && typeof barbaPrefetch !== 'undefined' && barba.use) {
-//     barba.use(barbaPrefetch);
-// }
-//
-//     barba.init({
-//     preventRunning: true,
-//     prefetch: !!window.barbaPrefetch,
-//
-//     views: [
-// {
-//     namespace: 'archive',
-//     beforeEnter() {
-//     console.log('Entering archive page');
-// },
-//     afterEnter() {
-//     if (ProjectApp.archivePageModule?.init) {
-//     ProjectApp.archivePageModule.init();
-// }
-// },
-//     beforeLeave() {
-//     if (ProjectApp.archivePageModule?.cleanup) {
-//     ProjectApp.archivePageModule.cleanup();
-// }
-// }
-// },
-// {
-//     namespace: 'about',
-//     afterEnter() {
-//     if (ProjectApp.pageSpecificModule?.init) {
-//     ProjectApp.pageSpecificModule.init();
-// }
-// },
-//     beforeLeave() {
-//     if (ProjectApp.pageSpecificModule?.cleanup) {
-//     ProjectApp.pageSpecificModule.cleanup();
-// }
-// }
-// }
-//     ],
-//
-//     transitions: [{
-//     name: 'default-transition',
-//
-//     async leave(data) {
-//     ProjectApp.state.isTransitioning = true;
-//
-//     // Cleanup ALL modules
-//     const cleanupModules = [
-//     ProjectApp.listModule,
-//     ProjectApp.pageSpecificModule,
-//     ProjectApp.archivePageModule,
-//     ProjectApp.reportageSwiper
-//     ];
-//
-//     cleanupModules.forEach(module => {
-//     if (module?.cleanup) module.cleanup();
-// });
-//
-//     Object.values(ProjectApp.swiperModule.swipers || {}).forEach(swiper => {
-//     try {
-//     if (swiper.mousewheel?.disable) swiper.mousewheel.disable();
-//     swiper.allowTouchMove = false;
-//     if (swiper.detachEvents) swiper.detachEvents();
-// } catch(e) {}
-// });
-//
-//     ProjectApp.eventHandlers.cleanupSharedListeners();
-//     ProjectApp.viewSwitcher.cleanupSwitchAnimation();
-//     ProjectApp.animations.cleanupLinkHover();
-//     ProjectApp.timeline.cleanupTimeline();
-//
-//     // Pause all videos
-//     document.querySelectorAll('video').forEach(v => v.pause());
-//
-//     if (data?.trigger?.tagName) {
-//     const href = data.trigger.getAttribute?.('href');
-//     if (href && !href.startsWith('#') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
-//     try {
-//     ProjectApp.barbaManager.updateActiveLinkByHref(new URL(href, window.location.origin).href);
-// } catch(e) {}
-// }
-// }
-//
-//     const blocks = document.querySelectorAll('.transition-block');
-//     ProjectApp.barbaManager.setBlockAlignments(blocks);
-//
-//     const done = this.async();
-//
-//     gsap.timeline({
-//     onComplete: () => {
-//     ProjectApp.barbaManager.swapBlockAlignments(blocks);
-//     done();
-// }
-// })
-//     .fromTo(blocks,
-// {height: '0%'},
-// {height: '100%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
-//     );
-// },
-//
-//     async enter(data) {
-//     const next = data.next.container;
-//
-//     // Wait for images
-//     await ProjectApp.utils.waitForImages(next);
-//
-//     // Prepare videos (lazy load)
-//     ProjectApp.utils.prepareVideos(next);
-//
-//     ProjectApp.barbaManager.prepareTransitionBlocks();
-//     const blocks = document.querySelectorAll('.transition-block');
-//
-//     const done = this.async();
-//
-//     gsap.timeline({
-//     onComplete: () => {
-//     ProjectApp.barbaManager.swapBlockAlignments(blocks);
-//     ProjectApp.state.isTransitioning = false;
-//
-//     // Initialize immediately
-//     ProjectApp.initPageFeatures();
-//     if (ProjectApp.pageAnimations?.initAll) {
-//     ProjectApp.pageAnimations.initAll();
-// }
-//
-//     done();
-// }
-// })
-//     .fromTo(blocks,
-// {height: '100%'},
-// {height: '0%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
-//     );
-// },
-//
-//     async once(data) {
-//     const container = data.next.container || data.current.container || document;
-//     await ProjectApp.utils.waitForImages(container);
-//
-//     try {
-//     ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
-// } catch(e) {}
-//
-//     const transitionBlocks = document.querySelectorAll('.transition-block');
-//     ProjectApp.barbaManager.setBlockAlignments(transitionBlocks);
-// }
-// }]
-// });
-//
-//     if (barba.hooks?.after) {
-//     barba.hooks.after(() => {
-//     ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
-// });
-// }
-// }
-// };
-//
-//     // ============================================
-//     // MAIN INIT
-//     // ============================================
-//     ProjectApp.initPageFeatures = function() {
-//     if (ProjectApp.textStyling?.init) {
-//     ProjectApp.textStyling.init();
-// }
-//
-//     // Check current page/view and init appropriate module
-//     const currentPath = window.location.pathname;
-//     const namespace = document.querySelector('[data-barba-namespace]')?.getAttribute('data-barba-namespace');
-//
-//     // General features
-//     ProjectApp.state.backgroundHoverHandler = ProjectApp.animations.initBackgroundImageHover();
-//
-//     const activeOption = document.querySelector('.option-item.is--active');
-//     let desired = 'swiper';
-//
-//     if (activeOption) {
-//     if (activeOption.hasAttribute('data-list')) desired = 'list';
-//     if (activeOption.hasAttribute('data-swiper')) desired = 'swiper';
-// } else {
-//     const projectCollection = document.querySelector('.project-collection');
-//     if (projectCollection && !ProjectApp.utils.isElementActuallyHidden(projectCollection)) {
-//     desired = 'list';
-// }
-// }
-//
-//     if (desired === 'swiper') {
-//     ProjectApp.state.currentView = 'swiper';
-//     const projectCollection = document.querySelector('.project-collection');
-//     const swipersContainer = document.querySelector('.swipers-container');
-//
-//     if (swipersContainer) swipersContainer.classList.remove('is--hidden');
-//     if (projectCollection) projectCollection.classList.add('is--hidden');
-//
-//     if (ProjectApp.swiperModule?.initAll) {
-//     ProjectApp.swiperModule.initAll();
-// }
-// } else {
-//     ProjectApp.state.currentView = 'list';
-//     const swipersContainer = document.querySelector('.swipers-container');
-//     const projectCollection = document.querySelector('.project-collection');
-//
-//     if (projectCollection) projectCollection.classList.remove('is--hidden');
-//     if (swipersContainer) swipersContainer.classList.add('is--hidden');
-//
-//     if (ProjectApp.listModule?.ensureListInit) {
-//     ProjectApp.listModule.ensureListInit();
-// }
-// }
-//
-//     setTimeout(() => {
-//     if (ProjectApp.filterModule?.initializeTotalCounts) {
-//     ProjectApp.state.countsInitialized = false;
-//     ProjectApp.filterModule.initializeTotalCounts();
-//     ProjectApp.filterModule.updateCurrentTotalCount();
-// }
-// }, 200);
-//
-//     // Always init these
-//     ProjectApp.eventHandlers.setupSharedListeners();
-//     ProjectApp.viewSwitcher.initSwitchAnimation();
-//     ProjectApp.animations.initLinkHover();
-//     ProjectApp.animations.initBackgroundHoverBlock();
-//     ProjectApp.animations.initGuildsAnimations();
-//     ProjectApp.animations.initPressAnimations();
-//     ProjectApp.timeline.initTimeline();
-//
-//     // Reportage swiper (if exists and not already initialized)
-//     if (ProjectApp.reportageSwiper &&
-//     !ProjectApp.reportageSwiper.swiperMove &&
-//     !ProjectApp.reportageSwiper.swiperFade) {
-//     const hasReportage = document.querySelector('.swiper.reportage-move') &&
-//     document.querySelector('.swiper.reportage-fade');
-//     if (hasReportage) {
-//     ProjectApp.reportageSwiper.init();
-// }
-// }
-// };
+    // OLD BARBA MANAGER
+    // ProjectApp.barbaManager = {
+    //     setBlockAlignments(blocks) {
+    //         blocks.forEach((block, index) => {
+    //             if (ProjectApp.state.blockAlignmentState === 'initial') {
+    //                 block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
+    //             } else {
+    //                 block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
+    //             }
+    //         });
+    //     },
+    //
+    //     swapBlockAlignments(blocks) {
+    //         ProjectApp.state.blockAlignmentState =
+    //             ProjectApp.state.blockAlignmentState === 'initial' ? 'swapped' : 'initial';
+    //
+    //         blocks.forEach((block, index) => {
+    //             if (ProjectApp.state.blockAlignmentState === 'initial') {
+    //                 block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
+    //             } else {
+    //                 block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
+    //             }
+    //         });
+    //     },
+    //
+    //     prepareTransitionBlocks() {
+    //         const blocks = document.querySelectorAll('.transition-block');
+    //         blocks.forEach((block) => {
+    //             gsap.set(block, {clearProps: 'height'});
+    //         });
+    //         ProjectApp.barbaManager.setBlockAlignments(blocks);
+    //     },
+    //
+    //     updateActiveLinkByHref(href) {
+    //         try {
+    //             const url = new URL(href, window.location.origin);
+    //             const links = Array.from(document.querySelectorAll('.nav-link-block'));
+    //             links.forEach(a => a.classList.remove('is--active'));
+    //
+    //             const pqh = url.pathname + url.search + url.hash;
+    //             let target = document.querySelector(`.nav-link-block[href="${pqh}"]`) ||
+    //                 document.querySelector(`.nav-link-block[href="${url.pathname}"]`);
+    //
+    //             if (!target) {
+    //                 target = links.find(a => {
+    //                     try {
+    //                         const aURL = new URL(a.getAttribute('href'), window.location.origin);
+    //                         return aURL.pathname === url.pathname;
+    //                     } catch(e) {
+    //                         return false;
+    //                     }
+    //                 });
+    //             }
+    //
+    //             if (target) target.classList.add('is--active');
+    //         } catch(e) {
+    //         }
+    //     },
+    //
+    //     updateActiveLinkFromCurrentLocation() {
+    //         ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
+    //     },
+    //
+    //     init() {
+    //         if (!window.barba || !window.barba.init) {
+    //             return;
+    //         }
+    //
+    //         if (window.barbaPrefetch && typeof barbaPrefetch !== 'undefined' && barba.use) {
+    //             barba.use(barbaPrefetch);
+    //         }
+    //
+    //         barba.init({
+    //             preventRunning: true,
+    //             prefetch: !!window.barbaPrefetch,
+    //             transitions: [{
+    //                 name: 'default-transition',
+    //
+    //                 async leave(data) {
+    //                     ProjectApp.state.isTransitioning = true;
+    //
+    //                     Object.values(ProjectApp.swiperModule.swipers || {}).forEach(swiper => {
+    //                         try {
+    //                             if (swiper.mousewheel && swiper.mousewheel.disable) swiper.mousewheel.disable();
+    //                             swiper.allowTouchMove = false;
+    //                             if (swiper.detachEvents) swiper.detachEvents();
+    //                         } catch(e) {}
+    //                     });
+    //
+    //                     if (data && data.trigger && data.trigger.tagName) {
+    //                         const href = data.trigger.getAttribute && data.trigger.getAttribute('href');
+    //                         if (href && !href.startsWith('#') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
+    //                             try {
+    //                                 ProjectApp.barbaManager.updateActiveLinkByHref(new URL(href, window.location.origin).href);
+    //                             } catch(e) {
+    //                             }
+    //                         }
+    //                     }
+    //
+    //                     const blocks = document.querySelectorAll('.transition-block');
+    //                     ProjectApp.barbaManager.setBlockAlignments(blocks);
+    //
+    //                     const done = this.async();
+    //
+    //                     gsap.timeline({
+    //                         onComplete: () => {
+    //                             ProjectApp.barbaManager.swapBlockAlignments(blocks);
+    //                             done();
+    //                         }
+    //                     })
+    //                         .fromTo(blocks,
+    //                             {height: '0%'},
+    //                             {height: '100%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
+    //                         )
+    //                         .call(() => {
+    //                             if (ProjectApp.listModule.cleanupInfiniteScroll) {
+    //                                 ProjectApp.listModule.cleanupInfiniteScroll();
+    //                             }
+    //                             if (ProjectApp.pageSpecificModule && ProjectApp.pageSpecificModule.cleanup) {
+    //                                 ProjectApp.pageSpecificModule.cleanup();
+    //                             }
+    //                             ProjectApp.eventHandlers.cleanupSharedListeners();
+    //                             ProjectApp.viewSwitcher.cleanupSwitchAnimation();
+    //                             ProjectApp.animations.cleanupLinkHover();
+    //                             ProjectApp.timeline.cleanupTimeline();
+    //                         });
+    //                 },
+    //
+    //                 async enter(data) {
+    //                     const next = data.next.container;
+    //                     await ProjectApp.utils.waitForImages(next);
+    //
+    //                     ProjectApp.barbaManager.prepareTransitionBlocks();
+    //                     const blocks = document.querySelectorAll('.transition-block');
+    //
+    //                     const done = this.async();
+    //
+    //                     gsap.timeline({
+    //                         onComplete: () => {
+    //                             ProjectApp.barbaManager.swapBlockAlignments(blocks);
+    //                             ProjectApp.state.isTransitioning = false;
+    //
+    //                             setTimeout(() => {
+    //                                 ProjectApp.initPageFeatures();
+    //                                 ProjectApp.pageAnimations.initAll();
+    //
+    //                                 const swipersContainer = document.querySelector('.swipers-container');
+    //                                 const projectCollection = document.querySelector('.project-collection');
+    //                                 if (ProjectApp.state.currentView === 'swiper' && swipersContainer) {
+    //                                     swipersContainer.classList.remove('is--hidden');
+    //                                     if (projectCollection) projectCollection.classList.add('is--hidden');
+    //                                 } else if (ProjectApp.state.currentView === 'list' && projectCollection) {
+    //                                     projectCollection.classList.remove('is--hidden');
+    //                                     if (swipersContainer) swipersContainer.classList.add('is--hidden');
+    //                                 }
+    //                             }, 100);
+    //
+    //                             done();
+    //                         }
+    //                     })
+    //                         .fromTo(blocks,
+    //                             {height: '100%'},
+    //                             {height: '0%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
+    //                         );
+    //                 },
+    //
+    //                 async once(data) {
+    //                     const container = data.next.container || data.current.container || document;
+    //                     await ProjectApp.utils.waitForImages(container);
+    //
+    //                     try {
+    //                         ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
+    //                     } catch(e) {
+    //                     }
+    //
+    //                     const transitionBlocks = document.querySelectorAll('.transition-block');
+    //                     ProjectApp.barbaManager.setBlockAlignments(transitionBlocks);
+    //                 }
+    //             }]
+    //         });
+    //
+    //         if (barba.hooks && barba.hooks.after) {
+    //             barba.hooks.after(() => {
+    //                 ProjectApp.barbaManager.updateActiveLinkFromCurrentLocation();
+    //                 // ProjectApp.state.backgroundHoverHandler = ProjectApp.animations.initBackgroundImageHover();
+    //                 // if (!ProjectApp.state.linkHoverState.items.length) {
+    //                 //   ProjectApp.animations.initLinkHover();
+    //                 // }
+    //                 // if (!ProjectApp.state.timelineState.timers.length) {
+    //                 //   ProjectApp.timeline.initTimeline();
+    //                 // }
+    //             });
+    //         }
+    //     }
+    // };
 
- // BARBA MANAGER
- ProjectApp.barbaManager = {
+    // BARBA MANAGER
+    ProjectApp.barbaManager = {
      setBlockAlignments(blocks) {
          blocks.forEach((block, index) => {
              if (ProjectApp.state.blockAlignmentState === 'initial') {
@@ -7319,6 +7096,10 @@ window.ProjectApp = {
          } catch(e) {}
      },
 
+     updateActiveLinkFromCurrentLocation() {
+         ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
+     },
+
      init() {
          if (!window.barba || !window.barba.init) {
              return;
@@ -7336,7 +7117,6 @@ window.ProjectApp = {
                  {
                      namespace: 'work',
                      afterEnter() {
-                         console.log('Entering work page');
                          ProjectApp.initWorkPage();
                      },
                      beforeLeave() {
@@ -7346,7 +7126,6 @@ window.ProjectApp = {
                  {
                      namespace: 'archive',
                      afterEnter() {
-                         console.log('Entering archive page');
                          if (ProjectApp.archivePageModule?.init) {
                              ProjectApp.archivePageModule.init();
                          }
@@ -7360,7 +7139,6 @@ window.ProjectApp = {
                  {
                      namespace: 'about',
                      afterEnter() {
-                         console.log('Entering about page');
                          if (ProjectApp.pageSpecificModule?.init) {
                              ProjectApp.pageSpecificModule.init();
                          }
@@ -7374,7 +7152,6 @@ window.ProjectApp = {
                  {
                      namespace: 'reportage',
                      afterEnter() {
-                         console.log('Entering reportage page');
                          if (ProjectApp.reportageSwiper?.init) {
                              ProjectApp.reportageSwiper.init();
                          }
@@ -7388,7 +7165,6 @@ window.ProjectApp = {
                  {
                      namespace: 'contact',
                      afterEnter() {
-                         console.log('Entering contact page');
                      }
                  }
              ],
@@ -7399,7 +7175,6 @@ window.ProjectApp = {
                  async leave(data) {
                      ProjectApp.state.isTransitioning = true;
 
-                     // Cleanup ALL modules
                      const cleanupModules = [
                          ProjectApp.listModule,
                          ProjectApp.swiperModule,
@@ -7412,7 +7187,6 @@ window.ProjectApp = {
                          if (module?.cleanup) module.cleanup();
                      });
 
-                     // Cleanup swipers specifically
                      Object.values(ProjectApp.swiperModule.swipers || {}).forEach(swiper => {
                          try {
                              if (swiper.mousewheel?.disable) swiper.mousewheel.disable();
@@ -7421,16 +7195,13 @@ window.ProjectApp = {
                          } catch(e) {}
                      });
 
-                     // Cleanup shared listeners
                      ProjectApp.eventHandlers.cleanupSharedListeners();
                      ProjectApp.viewSwitcher.cleanupSwitchAnimation();
                      ProjectApp.animations.cleanupLinkHover();
                      ProjectApp.timeline.cleanupTimeline();
 
-                     // Pause all videos
                      document.querySelectorAll('video').forEach(v => v.pause());
 
-                     // Update active nav link
                      if (data?.trigger?.tagName) {
                          const href = data.trigger.getAttribute?.('href');
                          if (href && !href.startsWith('#') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
@@ -7460,10 +7231,8 @@ window.ProjectApp = {
                  async enter(data) {
                      const next = data.next.container;
 
-                     // Wait for images
                      await ProjectApp.utils.waitForImages(next);
 
-                     // Prepare videos (lazy load)
                      ProjectApp.utils.prepareVideos(next);
 
                      ProjectApp.barbaManager.prepareTransitionBlocks();
@@ -7476,10 +7245,8 @@ window.ProjectApp = {
                              ProjectApp.barbaManager.swapBlockAlignments(blocks);
                              ProjectApp.state.isTransitioning = false;
 
-                             // Initialize shared features for ALL pages (includes all animations)
                              ProjectApp.initSharedFeatures();
 
-                             // Page animations (if you have this module)
                              if (ProjectApp.pageAnimations?.initAll) {
                                  ProjectApp.pageAnimations.initAll();
                              }
@@ -7515,8 +7282,8 @@ window.ProjectApp = {
      }
  };
 
- // SHARED FEATURES
- ProjectApp.initSharedFeatures = function() {
+    // SHARED FEATURES
+    ProjectApp.initSharedFeatures = function() {
      console.log('Initializing shared features');
 
      // Text styling
@@ -7554,8 +7321,8 @@ window.ProjectApp = {
      }
  };
 
- // WORK PAGE SPECIFIC INIT
- ProjectApp.initWorkPage = function() {
+    // WORK PAGE INIT
+    ProjectApp.initWorkPage = function() {
      console.log('Initializing work page features');
 
      const activeOption = document.querySelector('.option-item.is--active');
@@ -7612,8 +7379,8 @@ window.ProjectApp = {
      ProjectApp.animations.initPressAnimations();
  };
 
- // WORK PAGE CLEANUP
- ProjectApp.cleanupWorkPage = function() {
+    // WORK PAGE CLEANUP
+    ProjectApp.cleanupWorkPage = function() {
      console.log('Cleaning up work page');
 
      if (ProjectApp.listModule?.cleanupInfiniteScroll) {
@@ -7648,10 +7415,8 @@ window.ProjectApp = {
              }
 
              try {
-                 // Initialize shared features on first load
                  ProjectApp.initSharedFeatures();
 
-                 // Initialize page-specific features based on current namespace
                  const namespace = document.querySelector('[data-barba-namespace]')?.getAttribute('data-barba-namespace');
 
                  switch(namespace) {
@@ -7674,13 +7439,11 @@ window.ProjectApp = {
                          }
                          break;
                      case 'contact':
-                         // Contact page has no specific modules
                          break;
                      default:
                          console.log('Unknown namespace:', namespace);
                  }
 
-                 // Initialize page animations
                  if (ProjectApp.pageAnimations?.initAll) {
                      ProjectApp.pageAnimations.initAll();
                  }
@@ -7690,7 +7453,6 @@ window.ProjectApp = {
              }
 
              try {
-                 // Initialize Barba after initial page setup
                  if (ProjectApp.barbaManager?.init) {
                      ProjectApp.barbaManager.init();
                  }
@@ -7708,45 +7470,27 @@ window.ProjectApp = {
          }
      })();
 
- // PRELOADER
- (function() {
+    // PRELOADER
+    (function() {
      document.addEventListener("DOMContentLoaded", function () {
-         // Check if we're on the work page
          const namespace = document.querySelector('[data-barba-namespace]')?.getAttribute('data-barba-namespace');
-
          if (namespace !== 'work') {
-             console.log('Not work page - skipping preloader');
              return;
          }
-
-         // Check if preloader exists
          const preloaderElement = document.querySelector('.preloader');
          if (!preloaderElement) {
-             console.log('No preloader element found');
              return;
          }
-
-         // Check if preloader has already been shown in this session
          const preloaderShown = sessionStorage.getItem('preloaderShown');
-
-         // If already shown, skip preloader and show content immediately
          if (preloaderShown === 'true') {
-             console.log('Preloader already shown this session - skipping');
-
-             // Hide preloader immediately
              preloaderElement.style.display = 'none';
-
-             // Show navbar and footer immediately
              const navbar = document.querySelector('.navbar');
              const footer = document.querySelector('.footer');
              if (navbar) gsap.set(navbar, { yPercent: 0 });
              if (footer) gsap.set(footer, { yPercent: 0 });
-
-             // Unblock interactions
              const blockedBlock = document.querySelector('.blocked-block');
              if (blockedBlock) blockedBlock.style.pointerEvents = 'none';
 
-             // Show slides in final state
              const activeSlide = document.querySelector('.swiper-slide-active');
              const logicalPrevSlide = document.querySelector('.swiper-slide.is--prev-logical');
 
@@ -7759,12 +7503,8 @@ window.ProjectApp = {
 
              return;
          }
-
-         // Mark preloader as shown for this session
-         console.log('First visit to work page - running preloader');
          sessionStorage.setItem('preloaderShown', 'true');
 
-         // YOUR ORIGINAL CODE STARTS HERE
          function prepareSlide() {
              const activeSlide = document.querySelector('.swiper-slide-active');
              const logicalPrevSlide = document.querySelector('.swiper-slide.is--prev-logical');
