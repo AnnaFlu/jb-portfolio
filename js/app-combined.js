@@ -7038,437 +7038,912 @@
     //     }
     // };
 
+ //    // BARBA MANAGER
+ //    ProjectApp.barbaManager = {
+ //     setBlockAlignments(blocks) {
+ //         blocks.forEach((block, index) => {
+ //             if (ProjectApp.state.blockAlignmentState === 'initial') {
+ //                 block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
+ //             } else {
+ //                 block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
+ //             }
+ //         });
+ //     },
+ //
+ //     swapBlockAlignments(blocks) {
+ //         ProjectApp.state.blockAlignmentState =
+ //             ProjectApp.state.blockAlignmentState === 'initial' ? 'swapped' : 'initial';
+ //
+ //         blocks.forEach((block, index) => {
+ //             if (ProjectApp.state.blockAlignmentState === 'initial') {
+ //                 block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
+ //             } else {
+ //                 block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
+ //             }
+ //         });
+ //     },
+ //
+ //     prepareTransitionBlocks() {
+ //         const blocks = document.querySelectorAll('.transition-block');
+ //         blocks.forEach((block) => {
+ //             gsap.set(block, {clearProps: 'height'});
+ //         });
+ //         ProjectApp.barbaManager.setBlockAlignments(blocks);
+ //     },
+ //
+ //     updateActiveLinkByHref(href) {
+ //         try {
+ //             const url = new URL(href, window.location.origin);
+ //             const links = Array.from(document.querySelectorAll('.nav-link-block'));
+ //             links.forEach(a => a.classList.remove('is--active'));
+ //
+ //             const pqh = url.pathname + url.search + url.hash;
+ //             let target = document.querySelector(`.nav-link-block[href="${pqh}"]`) ||
+ //                 document.querySelector(`.nav-link-block[href="${url.pathname}"]`);
+ //
+ //             if (!target) {
+ //                 target = links.find(a => {
+ //                     try {
+ //                         const aURL = new URL(a.getAttribute('href'), window.location.origin);
+ //                         return aURL.pathname === url.pathname;
+ //                     } catch(e) {
+ //                         return false;
+ //                     }
+ //                 });
+ //             }
+ //
+ //             if (target) target.classList.add('is--active');
+ //         } catch(e) {}
+ //     },
+ //
+ //     updateActiveLinkFromCurrentLocation() {
+ //         ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
+ //     },
+ //
+ //     init() {
+ //         if (!window.barba || !window.barba.init) {
+ //             return;
+ //         }
+ //
+ //         if (window.barbaPrefetch && typeof barbaPrefetch !== 'undefined' && barba.use) {
+ //             barba.use(barbaPrefetch);
+ //         }
+ //
+ //         barba.init({
+ //             preventRunning: true,
+ //             prefetch: !!window.barbaPrefetch,
+ //
+ //             views: [
+ //                 {
+ //                     namespace: 'work',
+ //                     afterEnter() {
+ //                         ProjectApp.initWorkPage();
+ //                     },
+ //                     beforeLeave() {
+ //                         ProjectApp.cleanupWorkPage();
+ //                     }
+ //                 },
+ //                 {
+ //                     namespace: 'archive',
+ //                     afterEnter() {
+ //                         if (ProjectApp.archivePageModule?.init) {
+ //                             ProjectApp.archivePageModule.init();
+ //                         }
+ //                     },
+ //                     beforeLeave() {
+ //                         if (ProjectApp.archivePageModule?.cleanup) {
+ //                             ProjectApp.archivePageModule.cleanup();
+ //                         }
+ //                     }
+ //                 },
+ //                 {
+ //                     namespace: 'about',
+ //                     afterEnter() {
+ //                         if (ProjectApp.pageSpecificModule?.init) {
+ //                             ProjectApp.pageSpecificModule.init();
+ //                         }
+ //                     },
+ //                     beforeLeave() {
+ //                         if (ProjectApp.pageSpecificModule?.cleanup) {
+ //                             ProjectApp.pageSpecificModule.cleanup();
+ //                         }
+ //                     }
+ //                 },
+ //                 {
+ //                     namespace: 'reportage',
+ //                     afterEnter() {
+ //                         if (ProjectApp.reportageSwiper?.init) {
+ //                             ProjectApp.reportageSwiper.init();
+ //                         }
+ //                     },
+ //                     beforeLeave() {
+ //                         if (ProjectApp.reportageSwiper?.cleanup) {
+ //                             ProjectApp.reportageSwiper.cleanup();
+ //                         }
+ //                     }
+ //                 },
+ //                 {
+ //                     namespace: 'contact',
+ //                     afterEnter() {
+ //                     }
+ //                 }
+ //             ],
+ //
+ //             transitions: [{
+ //                 name: 'default-transition',
+ //
+ //                 async leave(data) {
+ //                     ProjectApp.state.isTransitioning = true;
+ //
+ //                     const cleanupModules = [
+ //                         ProjectApp.listModule,
+ //                         ProjectApp.swiperModule,
+ //                         ProjectApp.pageSpecificModule,
+ //                         ProjectApp.archivePageModule,
+ //                         ProjectApp.reportageSwiper
+ //                     ];
+ //
+ //                     cleanupModules.forEach(module => {
+ //                         if (module?.cleanup) module.cleanup();
+ //                     });
+ //
+ //                     Object.values(ProjectApp.swiperModule.swipers || {}).forEach(swiper => {
+ //                         try {
+ //                             if (swiper.mousewheel?.disable) swiper.mousewheel.disable();
+ //                             swiper.allowTouchMove = false;
+ //                             if (swiper.detachEvents) swiper.detachEvents();
+ //                         } catch(e) {}
+ //                     });
+ //
+ //                     ProjectApp.eventHandlers.cleanupSharedListeners();
+ //                     ProjectApp.viewSwitcher.cleanupSwitchAnimation();
+ //                     ProjectApp.animations.cleanupLinkHover();
+ //                     ProjectApp.timeline.cleanupTimeline();
+ //
+ //                     document.querySelectorAll('video').forEach(v => v.pause());
+ //
+ //                     if (data?.trigger?.tagName) {
+ //                         const href = data.trigger.getAttribute?.('href');
+ //                         if (href && !href.startsWith('#') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
+ //                             try {
+ //                                 ProjectApp.barbaManager.updateActiveLinkByHref(new URL(href, window.location.origin).href);
+ //                             } catch(e) {}
+ //                         }
+ //                     }
+ //
+ //                     const blocks = document.querySelectorAll('.transition-block');
+ //                     ProjectApp.barbaManager.setBlockAlignments(blocks);
+ //
+ //                     const done = this.async();
+ //
+ //                     gsap.timeline({
+ //                         onComplete: () => {
+ //                             ProjectApp.barbaManager.swapBlockAlignments(blocks);
+ //                             done();
+ //                         }
+ //                     })
+ //                         .fromTo(blocks,
+ //                             {height: '0%'},
+ //                             {height: '100%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
+ //                         );
+ //                 },
+ //
+ //                 async enter(data) {
+ //                     const next = data.next.container;
+ //
+ //                     await ProjectApp.utils.waitForImages(next);
+ //
+ //                     ProjectApp.utils.prepareVideos(next);
+ //
+ //                     ProjectApp.barbaManager.prepareTransitionBlocks();
+ //                     const blocks = document.querySelectorAll('.transition-block');
+ //
+ //                     const done = this.async();
+ //
+ //                     gsap.timeline({
+ //                         onComplete: () => {
+ //                             ProjectApp.barbaManager.swapBlockAlignments(blocks);
+ //                             ProjectApp.state.isTransitioning = false;
+ //
+ //                             ProjectApp.initSharedFeatures();
+ //
+ //                             if (ProjectApp.pageAnimations?.initAll) {
+ //                                 ProjectApp.pageAnimations.initAll();
+ //                             }
+ //
+ //                             done();
+ //                         }
+ //                     })
+ //                         .fromTo(blocks,
+ //                             {height: '100%'},
+ //                             {height: '0%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
+ //                         );
+ //                 },
+ //
+ //                 async once(data) {
+ //                     const container = data.next.container || data.current.container || document;
+ //                     await ProjectApp.utils.waitForImages(container);
+ //
+ //                     try {
+ //                         ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
+ //                     } catch(e) {}
+ //
+ //                     const transitionBlocks = document.querySelectorAll('.transition-block');
+ //                     ProjectApp.barbaManager.setBlockAlignments(transitionBlocks);
+ //                 }
+ //             }]
+ //         });
+ //
+ //         if (barba.hooks?.after) {
+ //             barba.hooks.after(() => {
+ //                 ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
+ //             });
+ //         }
+ //     }
+ // };
+ //
+ //    // SHARED FEATURES
+ //    ProjectApp.initSharedFeatures = function() {
+ //     console.log('Initializing shared features');
+ //
+ //     // Text styling
+ //     if (ProjectApp.textStyling?.init) {
+ //         ProjectApp.textStyling.init();
+ //     }
+ //
+ //     // ALL Animations (on every page)
+ //     if (ProjectApp.animations) {
+ //         ProjectApp.animations.initLinkHover();
+ //         ProjectApp.state.backgroundHoverHandler = ProjectApp.animations.initBackgroundImageHover();
+ //         ProjectApp.animations.initBackgroundHoverBlock();
+ //         ProjectApp.animations.initGuildsAnimations();
+ //         ProjectApp.animations.initPressAnimations();
+ //     }
+ //
+ //     // Timeline
+ //     if (ProjectApp.timeline?.initTimeline) {
+ //         ProjectApp.timeline.initTimeline();
+ //     }
+ //
+ //     // Event handlers
+ //     if (ProjectApp.eventHandlers?.setupSharedListeners) {
+ //         ProjectApp.eventHandlers.setupSharedListeners();
+ //     }
+ //
+ //     // View switcher (includes mode state)
+ //     if (ProjectApp.viewSwitcher?.initSwitchAnimation) {
+ //         ProjectApp.viewSwitcher.initSwitchAnimation();
+ //     }
+ //
+ //     // Apply background video mode state (NEW - call this AFTER initSwitchAnimation)
+ //     if (ProjectApp.viewSwitcher?.applyModeState) {
+ //         ProjectApp.viewSwitcher.applyModeState();
+ //     }
+ // };
+ //
+ //    // WORK PAGE INIT
+ //    ProjectApp.initWorkPage = function() {
+ //     console.log('Initializing work page features');
+ //
+ //     const activeOption = document.querySelector('.option-item.is--active');
+ //     let desired = 'swiper';
+ //
+ //     if (activeOption) {
+ //         if (activeOption.hasAttribute('data-list')) desired = 'list';
+ //         if (activeOption.hasAttribute('data-swiper')) desired = 'swiper';
+ //     } else {
+ //         const projectCollection = document.querySelector('.project-collection');
+ //         if (projectCollection && !ProjectApp.utils.isElementActuallyHidden(projectCollection)) {
+ //             desired = 'list';
+ //         }
+ //     }
+ //
+ //     if (desired === 'swiper') {
+ //         ProjectApp.state.currentView = 'swiper';
+ //         const projectCollection = document.querySelector('.project-collection');
+ //         const swipersContainer = document.querySelector('.swipers-container');
+ //
+ //         if (swipersContainer) swipersContainer.classList.remove('is--hidden');
+ //         if (projectCollection) projectCollection.classList.add('is--hidden');
+ //
+ //         if (ProjectApp.swiperModule?.initAll) {
+ //             ProjectApp.swiperModule.initAll();
+ //         }
+ //     } else {
+ //         ProjectApp.state.currentView = 'list';
+ //         const swipersContainer = document.querySelector('.swipers-container');
+ //         const projectCollection = document.querySelector('.project-collection');
+ //
+ //         if (projectCollection) projectCollection.classList.remove('is--hidden');
+ //         if (swipersContainer) swipersContainer.classList.add('is--hidden');
+ //
+ //         if (ProjectApp.listModule?.ensureListInit) {
+ //             ProjectApp.listModule.ensureListInit();
+ //         }
+ //     }
+ //
+ //     // Initialize filter counts
+ //     setTimeout(() => {
+ //         if (ProjectApp.filterModule?.initializeTotalCounts) {
+ //             ProjectApp.state.countsInitialized = false;
+ //             ProjectApp.filterModule.initializeTotalCounts();
+ //             ProjectApp.filterModule.updateCurrentTotalCount();
+ //         }
+ //     }, 200);
+ //
+ //     // ❌ REMOVE THIS - now in shared features
+ //     // ProjectApp.viewSwitcher.initSwitchAnimation();
+ //
+ //     // Additional work page animations
+ //     ProjectApp.animations.initGuildsAnimations();
+ //     ProjectApp.animations.initPressAnimations();
+ // };
+ //
+ //    // WORK PAGE CLEANUP
+ //    ProjectApp.cleanupWorkPage = function() {
+ //     console.log('Cleaning up work page');
+ //
+ //     if (ProjectApp.listModule?.cleanupInfiniteScroll) {
+ //         ProjectApp.listModule.cleanupInfiniteScroll();
+ //     }
+ //
+ //     if (ProjectApp.swiperModule?.cleanup) {
+ //         ProjectApp.swiperModule.cleanup();
+ //     }
+ //
+ //     ProjectApp.viewSwitcher.cleanupSwitchAnimation();
+ // };
+ //
+ //     // BOOTSTRAP
+ //     (function() {
+ //         ProjectApp.__bootDone = false;
+ //
+ //         ProjectApp.__isCoreReady = function() {
+ //             return !!(
+ //                 ProjectApp.swiperModule?.initSwiper &&
+ //                 ProjectApp.listModule?.ensureListInit &&
+ //                 ProjectApp.animations?.initLinkHover &&
+ //                 ProjectApp.barbaManager?.init
+ //             );
+ //         };
+ //
+ //         ProjectApp.bootstrap = function() {
+ //             if (ProjectApp.__bootDone) return;
+ //
+ //             if (!ProjectApp.__isCoreReady()) {
+ //                 return setTimeout(ProjectApp.bootstrap, 50);
+ //             }
+ //
+ //             try {
+ //                 ProjectApp.initSharedFeatures();
+ //
+ //                 const namespace = document.querySelector('[data-barba-namespace]')?.getAttribute('data-barba-namespace');
+ //
+ //                 switch(namespace) {
+ //                     case 'work':
+ //                         ProjectApp.initWorkPage();
+ //                         break;
+ //                     case 'archive':
+ //                         if (ProjectApp.archivePageModule?.init) {
+ //                             ProjectApp.archivePageModule.init();
+ //                         }
+ //                         break;
+ //                     case 'about':
+ //                         if (ProjectApp.pageSpecificModule?.init) {
+ //                             ProjectApp.pageSpecificModule.init();
+ //                         }
+ //                         break;
+ //                     case 'reportage':
+ //                         if (ProjectApp.reportageSwiper?.init) {
+ //                             ProjectApp.reportageSwiper.init();
+ //                         }
+ //                         break;
+ //                     case 'contact':
+ //                         break;
+ //                     default:
+ //                         console.log('Unknown namespace:', namespace);
+ //                 }
+ //
+ //                 if (ProjectApp.pageAnimations?.initAll) {
+ //                     ProjectApp.pageAnimations.initAll();
+ //                 }
+ //
+ //             } catch(e) {
+ //                 console.error('Init error:', e);
+ //             }
+ //
+ //             try {
+ //                 if (ProjectApp.barbaManager?.init) {
+ //                     ProjectApp.barbaManager.init();
+ //                 }
+ //             } catch(e) {
+ //                 console.error('Barba init error:', e);
+ //             }
+ //
+ //             ProjectApp.__bootDone = true;
+ //         };
+ //
+ //         if (document.readyState === 'loading') {
+ //             document.addEventListener('DOMContentLoaded', ProjectApp.bootstrap);
+ //         } else {
+ //             ProjectApp.bootstrap();
+ //         }
+ //     })();
+
     // BARBA MANAGER
     ProjectApp.barbaManager = {
-     setBlockAlignments(blocks) {
-         blocks.forEach((block, index) => {
-             if (ProjectApp.state.blockAlignmentState === 'initial') {
-                 block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
-             } else {
-                 block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
-             }
-         });
-     },
+        setBlockAlignments(blocks) {
+            blocks.forEach((block, index) => {
+                if (ProjectApp.state.blockAlignmentState === 'initial') {
+                    block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
+                } else {
+                    block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
+                }
+            });
+        },
 
-     swapBlockAlignments(blocks) {
-         ProjectApp.state.blockAlignmentState =
-             ProjectApp.state.blockAlignmentState === 'initial' ? 'swapped' : 'initial';
+        swapBlockAlignments(blocks) {
+            ProjectApp.state.blockAlignmentState =
+                ProjectApp.state.blockAlignmentState === 'initial' ? 'swapped' : 'initial';
 
-         blocks.forEach((block, index) => {
-             if (ProjectApp.state.blockAlignmentState === 'initial') {
-                 block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
-             } else {
-                 block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
-             }
-         });
-     },
+            blocks.forEach((block, index) => {
+                if (ProjectApp.state.blockAlignmentState === 'initial') {
+                    block.style.alignSelf = index % 2 === 0 ? 'flex-end' : 'flex-start';
+                } else {
+                    block.style.alignSelf = index % 2 === 0 ? 'flex-start' : 'flex-end';
+                }
+            });
+        },
 
-     prepareTransitionBlocks() {
-         const blocks = document.querySelectorAll('.transition-block');
-         blocks.forEach((block) => {
-             gsap.set(block, {clearProps: 'height'});
-         });
-         ProjectApp.barbaManager.setBlockAlignments(blocks);
-     },
+        prepareTransitionBlocks() {
+            const blocks = document.querySelectorAll('.transition-block');
+            blocks.forEach((block) => {
+                gsap.set(block, {clearProps: 'height'});
+            });
+            ProjectApp.barbaManager.setBlockAlignments(blocks);
+        },
 
-     updateActiveLinkByHref(href) {
-         try {
-             const url = new URL(href, window.location.origin);
-             const links = Array.from(document.querySelectorAll('.nav-link-block'));
-             links.forEach(a => a.classList.remove('is--active'));
+        updateActiveLinkByHref(href) {
+            try {
+                const url = new URL(href, window.location.origin);
+                const links = Array.from(document.querySelectorAll('.nav-link-block'));
+                links.forEach(a => a.classList.remove('is--active'));
 
-             const pqh = url.pathname + url.search + url.hash;
-             let target = document.querySelector(`.nav-link-block[href="${pqh}"]`) ||
-                 document.querySelector(`.nav-link-block[href="${url.pathname}"]`);
+                const pqh = url.pathname + url.search + url.hash;
+                let target = document.querySelector(`.nav-link-block[href="${pqh}"]`) ||
+                    document.querySelector(`.nav-link-block[href="${url.pathname}"]`);
 
-             if (!target) {
-                 target = links.find(a => {
-                     try {
-                         const aURL = new URL(a.getAttribute('href'), window.location.origin);
-                         return aURL.pathname === url.pathname;
-                     } catch(e) {
-                         return false;
-                     }
-                 });
-             }
+                if (!target) {
+                    target = links.find(a => {
+                        try {
+                            const aURL = new URL(a.getAttribute('href'), window.location.origin);
+                            return aURL.pathname === url.pathname;
+                        } catch(e) {
+                            return false;
+                        }
+                    });
+                }
 
-             if (target) target.classList.add('is--active');
-         } catch(e) {}
-     },
+                if (target) target.classList.add('is--active');
+            } catch(e) {}
+        },
 
-     updateActiveLinkFromCurrentLocation() {
-         ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
-     },
+        updateActiveLinkFromCurrentLocation() {
+            ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
+        },
 
-     init() {
-         if (!window.barba || !window.barba.init) {
-             return;
-         }
+        init() {
+            if (!window.barba || !window.barba.init) {
+                console.warn('Barba not found');
+                return;
+            }
 
-         if (window.barbaPrefetch && typeof barbaPrefetch !== 'undefined' && barba.use) {
-             barba.use(barbaPrefetch);
-         }
+            if (window.barbaPrefetch && typeof barbaPrefetch !== 'undefined' && barba.use) {
+                barba.use(barbaPrefetch);
+            }
 
-         barba.init({
-             preventRunning: true,
-             prefetch: !!window.barbaPrefetch,
+            barba.init({
+                preventRunning: true,
+                prefetch: true, // ✅ Always enable prefetching for performance
 
-             views: [
-                 {
-                     namespace: 'work',
-                     afterEnter() {
-                         ProjectApp.initWorkPage();
-                     },
-                     beforeLeave() {
-                         ProjectApp.cleanupWorkPage();
-                     }
-                 },
-                 {
-                     namespace: 'archive',
-                     afterEnter() {
-                         if (ProjectApp.archivePageModule?.init) {
-                             ProjectApp.archivePageModule.init();
-                         }
-                     },
-                     beforeLeave() {
-                         if (ProjectApp.archivePageModule?.cleanup) {
-                             ProjectApp.archivePageModule.cleanup();
-                         }
-                     }
-                 },
-                 {
-                     namespace: 'about',
-                     afterEnter() {
-                         if (ProjectApp.pageSpecificModule?.init) {
-                             ProjectApp.pageSpecificModule.init();
-                         }
-                     },
-                     beforeLeave() {
-                         if (ProjectApp.pageSpecificModule?.cleanup) {
-                             ProjectApp.pageSpecificModule.cleanup();
-                         }
-                     }
-                 },
-                 {
-                     namespace: 'reportage',
-                     afterEnter() {
-                         if (ProjectApp.reportageSwiper?.init) {
-                             ProjectApp.reportageSwiper.init();
-                         }
-                     },
-                     beforeLeave() {
-                         if (ProjectApp.reportageSwiper?.cleanup) {
-                             ProjectApp.reportageSwiper.cleanup();
-                         }
-                     }
-                 },
-                 {
-                     namespace: 'contact',
-                     afterEnter() {
-                     }
-                 }
-             ],
+                views: [
+                    {
+                        namespace: 'work',
+                        afterEnter() {
+                            console.log('🟢 Work page afterEnter');
+                            ProjectApp.initWorkPage();
+                        },
+                        beforeLeave() {
+                            console.log('🔴 Work page beforeLeave');
+                            ProjectApp.cleanupWorkPage();
+                        }
+                    },
+                    {
+                        namespace: 'archive',
+                        afterEnter() {
+                            console.log('🟠 Archive page afterEnter');
+                            if (ProjectApp.archivePageModule?.init) {
+                                ProjectApp.archivePageModule.init();
+                            }
+                        },
+                        beforeLeave() {
+                            if (ProjectApp.archivePageModule?.cleanup) {
+                                ProjectApp.archivePageModule.cleanup();
+                            }
+                        }
+                    },
+                    {
+                        namespace: 'about',
+                        afterEnter() {
+                            console.log('🟡 About page afterEnter');
+                            if (ProjectApp.pageSpecificModule?.init) {
+                                ProjectApp.pageSpecificModule.init();
+                            }
+                        },
+                        beforeLeave() {
+                            if (ProjectApp.pageSpecificModule?.cleanup) {
+                                ProjectApp.pageSpecificModule.cleanup();
+                            }
+                        }
+                    },
+                    {
+                        namespace: 'reportage',
+                        afterEnter() {
+                            console.log('🟤 Reportage page afterEnter');
+                            if (ProjectApp.reportageSwiper?.init) {
+                                ProjectApp.reportageSwiper.init();
+                            }
+                        },
+                        beforeLeave() {
+                            if (ProjectApp.reportageSwiper?.cleanup) {
+                                ProjectApp.reportageSwiper.cleanup();
+                            }
+                        }
+                    },
+                    {
+                        namespace: 'contact',
+                        afterEnter() {
+                            console.log('⚪ Contact page afterEnter');
+                        }
+                    }
+                ],
 
-             transitions: [{
-                 name: 'default-transition',
+                transitions: [{
+                    name: 'default-transition',
 
-                 async leave(data) {
-                     ProjectApp.state.isTransitioning = true;
+                    async leave(data) {
+                        console.log('⬅️ Barba leave transition');
+                        ProjectApp.state.isTransitioning = true;
 
-                     const cleanupModules = [
-                         ProjectApp.listModule,
-                         ProjectApp.swiperModule,
-                         ProjectApp.pageSpecificModule,
-                         ProjectApp.archivePageModule,
-                         ProjectApp.reportageSwiper
-                     ];
+                        // Cleanup page-specific modules (views handle this too, but belt-and-suspenders)
+                        const cleanupModules = [
+                            ProjectApp.listModule,
+                            ProjectApp.swiperModule,
+                            ProjectApp.pageSpecificModule,
+                            ProjectApp.archivePageModule,
+                            ProjectApp.reportageSwiper
+                        ];
 
-                     cleanupModules.forEach(module => {
-                         if (module?.cleanup) module.cleanup();
-                     });
+                        cleanupModules.forEach(module => {
+                            if (module?.cleanup) module.cleanup();
+                        });
 
-                     Object.values(ProjectApp.swiperModule.swipers || {}).forEach(swiper => {
-                         try {
-                             if (swiper.mousewheel?.disable) swiper.mousewheel.disable();
-                             swiper.allowTouchMove = false;
-                             if (swiper.detachEvents) swiper.detachEvents();
-                         } catch(e) {}
-                     });
+                        // Disable swiper interactions during transition
+                        Object.values(ProjectApp.swiperModule.swipers || {}).forEach(swiper => {
+                            try {
+                                if (swiper.mousewheel?.disable) swiper.mousewheel.disable();
+                                swiper.allowTouchMove = false;
+                                if (swiper.detachEvents) swiper.detachEvents();
+                            } catch(e) {}
+                        });
 
-                     ProjectApp.eventHandlers.cleanupSharedListeners();
-                     ProjectApp.viewSwitcher.cleanupSwitchAnimation();
-                     ProjectApp.animations.cleanupLinkHover();
-                     ProjectApp.timeline.cleanupTimeline();
+                        // Cleanup shared features
+                        ProjectApp.eventHandlers.cleanupSharedListeners();
+                        ProjectApp.viewSwitcher.cleanupSwitchAnimation();
+                        ProjectApp.animations.cleanupLinkHover();
+                        ProjectApp.timeline.cleanupTimeline();
 
-                     document.querySelectorAll('video').forEach(v => v.pause());
+                        // Pause all videos
+                        document.querySelectorAll('video').forEach(v => v.pause());
 
-                     if (data?.trigger?.tagName) {
-                         const href = data.trigger.getAttribute?.('href');
-                         if (href && !href.startsWith('#') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
-                             try {
-                                 ProjectApp.barbaManager.updateActiveLinkByHref(new URL(href, window.location.origin).href);
-                             } catch(e) {}
-                         }
-                     }
+                        // Update active nav link
+                        if (data?.trigger?.tagName) {
+                            const href = data.trigger.getAttribute?.('href');
+                            if (href && !href.startsWith('#') && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
+                                try {
+                                    ProjectApp.barbaManager.updateActiveLinkByHref(new URL(href, window.location.origin).href);
+                                } catch(e) {}
+                            }
+                        }
 
-                     const blocks = document.querySelectorAll('.transition-block');
-                     ProjectApp.barbaManager.setBlockAlignments(blocks);
+                        const blocks = document.querySelectorAll('.transition-block');
+                        ProjectApp.barbaManager.setBlockAlignments(blocks);
 
-                     const done = this.async();
+                        const done = this.async();
 
-                     gsap.timeline({
-                         onComplete: () => {
-                             ProjectApp.barbaManager.swapBlockAlignments(blocks);
-                             done();
-                         }
-                     })
-                         .fromTo(blocks,
-                             {height: '0%'},
-                             {height: '100%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
-                         );
-                 },
+                        gsap.timeline({
+                            onComplete: () => {
+                                ProjectApp.barbaManager.swapBlockAlignments(blocks);
+                                done();
+                            }
+                        })
+                            .fromTo(blocks,
+                                {height: '0%'},
+                                {height: '100%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
+                            );
+                    },
 
-                 async enter(data) {
-                     const next = data.next.container;
+                    async enter(data) {
+                        console.log('➡️ Barba enter transition');
+                        const next = data.next.container;
 
-                     await ProjectApp.utils.waitForImages(next);
+                        // ✅ Wait for critical assets
+                        await ProjectApp.utils.waitForImages(next);
 
-                     ProjectApp.utils.prepareVideos(next);
+                        // ✅ Prepare videos (set sources, etc)
+                        if (ProjectApp.utils.prepareVideos) {
+                            ProjectApp.utils.prepareVideos(next);
+                        }
 
-                     ProjectApp.barbaManager.prepareTransitionBlocks();
-                     const blocks = document.querySelectorAll('.transition-block');
+                        ProjectApp.barbaManager.prepareTransitionBlocks();
+                        const blocks = document.querySelectorAll('.transition-block');
 
-                     const done = this.async();
+                        const done = this.async();
 
-                     gsap.timeline({
-                         onComplete: () => {
-                             ProjectApp.barbaManager.swapBlockAlignments(blocks);
-                             ProjectApp.state.isTransitioning = false;
+                        gsap.timeline({
+                            onComplete: () => {
+                                ProjectApp.barbaManager.swapBlockAlignments(blocks);
+                                ProjectApp.state.isTransitioning = false;
 
-                             ProjectApp.initSharedFeatures();
+                                // ✅ Reinitialize shared features (animations, timelines, etc)
+                                console.log('🔵 Reinitializing shared features');
+                                ProjectApp.initSharedFeatures();
 
-                             if (ProjectApp.pageAnimations?.initAll) {
-                                 ProjectApp.pageAnimations.initAll();
-                             }
+                                // ✅ Page animations (entrance effects)
+                                if (ProjectApp.pageAnimations?.initAll) {
+                                    ProjectApp.pageAnimations.initAll();
+                                }
 
-                             done();
-                         }
-                     })
-                         .fromTo(blocks,
-                             {height: '100%'},
-                             {height: '0%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
-                         );
-                 },
+                                done();
+                            }
+                        })
+                            .fromTo(blocks,
+                                {height: '100%'},
+                                {height: '0%', duration: 0.6, ease: 'power2.inOut', stagger: 0.1}
+                            );
+                    },
 
-                 async once(data) {
-                     const container = data.next.container || data.current.container || document;
-                     await ProjectApp.utils.waitForImages(container);
+                    async once(data) {
+                        // ✅ Minimal setup on first load - bootstrap handles the rest
+                        console.log('🟣 Barba once hook');
 
-                     try {
-                         ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
-                     } catch(e) {}
+                        const container = data.next.container || data.current.container || document;
+                        await ProjectApp.utils.waitForImages(container);
 
-                     const transitionBlocks = document.querySelectorAll('.transition-block');
-                     ProjectApp.barbaManager.setBlockAlignments(transitionBlocks);
-                 }
-             }]
-         });
+                        try {
+                            ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
+                        } catch(e) {}
 
-         if (barba.hooks?.after) {
-             barba.hooks.after(() => {
-                 ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
-             });
-         }
-     }
- };
+                        const transitionBlocks = document.querySelectorAll('.transition-block');
+                        ProjectApp.barbaManager.setBlockAlignments(transitionBlocks);
+                    }
+                }]
+            });
+
+            if (barba.hooks?.after) {
+                barba.hooks.after(() => {
+                    ProjectApp.barbaManager.updateActiveLinkByHref(window.location.href);
+                });
+            }
+
+            console.log('✅ Barba initialized with prefetching enabled');
+        }
+    };
 
     // SHARED FEATURES
     ProjectApp.initSharedFeatures = function() {
-     console.log('Initializing shared features');
+        console.log('🔵 Initializing shared features');
 
-     // Text styling
-     if (ProjectApp.textStyling?.init) {
-         ProjectApp.textStyling.init();
-     }
+        // Text styling
+        if (ProjectApp.textStyling?.init) {
+            ProjectApp.textStyling.init();
+        }
 
-     // ALL Animations (on every page)
-     if (ProjectApp.animations) {
-         ProjectApp.animations.initLinkHover();
-         ProjectApp.state.backgroundHoverHandler = ProjectApp.animations.initBackgroundImageHover();
-         ProjectApp.animations.initBackgroundHoverBlock();
-         ProjectApp.animations.initGuildsAnimations();
-         ProjectApp.animations.initPressAnimations();
-     }
+        // ALL Animations (on every page)
+        if (ProjectApp.animations) {
+            ProjectApp.animations.initLinkHover();
+            ProjectApp.state.backgroundHoverHandler = ProjectApp.animations.initBackgroundImageHover();
+            ProjectApp.animations.initBackgroundHoverBlock();
+            ProjectApp.animations.initGuildsAnimations();
+            ProjectApp.animations.initPressAnimations();
+        }
 
-     // Timeline
-     if (ProjectApp.timeline?.initTimeline) {
-         ProjectApp.timeline.initTimeline();
-     }
+        // Timeline
+        if (ProjectApp.timeline?.initTimeline) {
+            ProjectApp.timeline.initTimeline();
+        }
 
-     // Event handlers
-     if (ProjectApp.eventHandlers?.setupSharedListeners) {
-         ProjectApp.eventHandlers.setupSharedListeners();
-     }
+        // Event handlers
+        if (ProjectApp.eventHandlers?.setupSharedListeners) {
+            ProjectApp.eventHandlers.setupSharedListeners();
+        }
 
-     // View switcher (includes mode state)
-     if (ProjectApp.viewSwitcher?.initSwitchAnimation) {
-         ProjectApp.viewSwitcher.initSwitchAnimation();
-     }
+        // View switcher (includes mode state)
+        if (ProjectApp.viewSwitcher?.initSwitchAnimation) {
+            ProjectApp.viewSwitcher.initSwitchAnimation();
+        }
 
-     // Apply background video mode state (NEW - call this AFTER initSwitchAnimation)
-     if (ProjectApp.viewSwitcher?.applyModeState) {
-         ProjectApp.viewSwitcher.applyModeState();
-     }
- };
+        // Apply background video mode state
+        if (ProjectApp.viewSwitcher?.applyModeState) {
+            ProjectApp.viewSwitcher.applyModeState();
+        }
+
+        console.log('✅ Shared features initialized');
+    };
 
     // WORK PAGE INIT
     ProjectApp.initWorkPage = function() {
-     console.log('Initializing work page features');
+        console.log('🟢 Initializing work page features');
 
-     const activeOption = document.querySelector('.option-item.is--active');
-     let desired = 'swiper';
+        const activeOption = document.querySelector('.option-item.is--active');
+        let desired = 'swiper';
 
-     if (activeOption) {
-         if (activeOption.hasAttribute('data-list')) desired = 'list';
-         if (activeOption.hasAttribute('data-swiper')) desired = 'swiper';
-     } else {
-         const projectCollection = document.querySelector('.project-collection');
-         if (projectCollection && !ProjectApp.utils.isElementActuallyHidden(projectCollection)) {
-             desired = 'list';
-         }
-     }
+        if (activeOption) {
+            if (activeOption.hasAttribute('data-list')) desired = 'list';
+            if (activeOption.hasAttribute('data-swiper')) desired = 'swiper';
+        } else {
+            const projectCollection = document.querySelector('.project-collection');
+            if (projectCollection && !ProjectApp.utils.isElementActuallyHidden(projectCollection)) {
+                desired = 'list';
+            }
+        }
 
-     if (desired === 'swiper') {
-         ProjectApp.state.currentView = 'swiper';
-         const projectCollection = document.querySelector('.project-collection');
-         const swipersContainer = document.querySelector('.swipers-container');
+        if (desired === 'swiper') {
+            ProjectApp.state.currentView = 'swiper';
+            const projectCollection = document.querySelector('.project-collection');
+            const swipersContainer = document.querySelector('.swipers-container');
 
-         if (swipersContainer) swipersContainer.classList.remove('is--hidden');
-         if (projectCollection) projectCollection.classList.add('is--hidden');
+            if (swipersContainer) swipersContainer.classList.remove('is--hidden');
+            if (projectCollection) projectCollection.classList.add('is--hidden');
 
-         if (ProjectApp.swiperModule?.initAll) {
-             ProjectApp.swiperModule.initAll();
-         }
-     } else {
-         ProjectApp.state.currentView = 'list';
-         const swipersContainer = document.querySelector('.swipers-container');
-         const projectCollection = document.querySelector('.project-collection');
+            if (ProjectApp.swiperModule?.initAll) {
+                ProjectApp.swiperModule.initAll();
+            }
+        } else {
+            ProjectApp.state.currentView = 'list';
+            const swipersContainer = document.querySelector('.swipers-container');
+            const projectCollection = document.querySelector('.project-collection');
 
-         if (projectCollection) projectCollection.classList.remove('is--hidden');
-         if (swipersContainer) swipersContainer.classList.add('is--hidden');
+            if (projectCollection) projectCollection.classList.remove('is--hidden');
+            if (swipersContainer) swipersContainer.classList.add('is--hidden');
 
-         if (ProjectApp.listModule?.ensureListInit) {
-             ProjectApp.listModule.ensureListInit();
-         }
-     }
+            if (ProjectApp.listModule?.ensureListInit) {
+                ProjectApp.listModule.ensureListInit();
+            }
+        }
 
-     // Initialize filter counts
-     setTimeout(() => {
-         if (ProjectApp.filterModule?.initializeTotalCounts) {
-             ProjectApp.state.countsInitialized = false;
-             ProjectApp.filterModule.initializeTotalCounts();
-             ProjectApp.filterModule.updateCurrentTotalCount();
-         }
-     }, 200);
+        // Initialize filter counts
+        setTimeout(() => {
+            if (ProjectApp.filterModule?.initializeTotalCounts) {
+                ProjectApp.state.countsInitialized = false;
+                ProjectApp.filterModule.initializeTotalCounts();
+                ProjectApp.filterModule.updateCurrentTotalCount();
+            }
+        }, 200);
 
-     // ❌ REMOVE THIS - now in shared features
-     // ProjectApp.viewSwitcher.initSwitchAnimation();
+        // Additional work page animations
+        ProjectApp.animations.initGuildsAnimations();
+        ProjectApp.animations.initPressAnimations();
 
-     // Additional work page animations
-     ProjectApp.animations.initGuildsAnimations();
-     ProjectApp.animations.initPressAnimations();
- };
+        console.log('✅ Work page initialized');
+    };
 
     // WORK PAGE CLEANUP
     ProjectApp.cleanupWorkPage = function() {
-     console.log('Cleaning up work page');
+        console.log('🔴 Cleaning up work page');
 
-     if (ProjectApp.listModule?.cleanupInfiniteScroll) {
-         ProjectApp.listModule.cleanupInfiniteScroll();
-     }
+        if (ProjectApp.listModule?.cleanupInfiniteScroll) {
+            ProjectApp.listModule.cleanupInfiniteScroll();
+        }
 
-     if (ProjectApp.swiperModule?.cleanup) {
-         ProjectApp.swiperModule.cleanup();
-     }
+        if (ProjectApp.swiperModule?.cleanup) {
+            ProjectApp.swiperModule.cleanup();
+        }
 
-     ProjectApp.viewSwitcher.cleanupSwitchAnimation();
- };
+        ProjectApp.viewSwitcher.cleanupSwitchAnimation();
 
-     // BOOTSTRAP
-     (function() {
-         ProjectApp.__bootDone = false;
+        console.log('✅ Work page cleaned up');
+    };
 
-         ProjectApp.__isCoreReady = function() {
-             return !!(
-                 ProjectApp.swiperModule?.initSwiper &&
-                 ProjectApp.listModule?.ensureListInit &&
-                 ProjectApp.animations?.initLinkHover &&
-                 ProjectApp.barbaManager?.init
-             );
-         };
+    // BOOTSTRAP
+    (function() {
+        ProjectApp.__bootDone = false;
 
-         ProjectApp.bootstrap = function() {
-             if (ProjectApp.__bootDone) return;
+        ProjectApp.__isCoreReady = function() {
+            return !!(
+                ProjectApp.swiperModule?.initSwiper &&
+                ProjectApp.listModule?.ensureListInit &&
+                ProjectApp.animations?.initLinkHover &&
+                ProjectApp.barbaManager?.init
+            );
+        };
 
-             if (!ProjectApp.__isCoreReady()) {
-                 return setTimeout(ProjectApp.bootstrap, 50);
-             }
+        ProjectApp.bootstrap = function() {
+            if (ProjectApp.__bootDone) {
+                console.log('⚠️ Bootstrap already complete - skipping');
+                return;
+            }
 
-             try {
-                 ProjectApp.initSharedFeatures();
+            if (!ProjectApp.__isCoreReady()) {
+                console.log('⏳ Waiting for core modules...');
+                return setTimeout(ProjectApp.bootstrap, 50);
+            }
 
-                 const namespace = document.querySelector('[data-barba-namespace]')?.getAttribute('data-barba-namespace');
+            console.log('🟡 Bootstrap starting');
 
-                 switch(namespace) {
-                     case 'work':
-                         ProjectApp.initWorkPage();
-                         break;
-                     case 'archive':
-                         if (ProjectApp.archivePageModule?.init) {
-                             ProjectApp.archivePageModule.init();
-                         }
-                         break;
-                     case 'about':
-                         if (ProjectApp.pageSpecificModule?.init) {
-                             ProjectApp.pageSpecificModule.init();
-                         }
-                         break;
-                     case 'reportage':
-                         if (ProjectApp.reportageSwiper?.init) {
-                             ProjectApp.reportageSwiper.init();
-                         }
-                         break;
-                     case 'contact':
-                         break;
-                     default:
-                         console.log('Unknown namespace:', namespace);
-                 }
+            try {
+                // 1️⃣ FIRST: Initialize Barba (enables prefetching immediately)
+                console.log('🟣 Step 1: Initializing Barba');
+                if (ProjectApp.barbaManager?.init) {
+                    ProjectApp.barbaManager.init();
+                }
 
-                 if (ProjectApp.pageAnimations?.initAll) {
-                     ProjectApp.pageAnimations.initAll();
-                 }
+                // 2️⃣ THEN: Initialize shared features
+                console.log('🔵 Step 2: Initializing shared features');
+                ProjectApp.initSharedFeatures();
 
-             } catch(e) {
-                 console.error('Init error:', e);
-             }
+                // 3️⃣ THEN: Initialize page-specific features
+                console.log('🏷️ Step 3: Detecting page namespace');
+                const namespace = document.querySelector('[data-barba-namespace]')?.getAttribute('data-barba-namespace');
+                console.log('   Namespace:', namespace);
 
-             try {
-                 if (ProjectApp.barbaManager?.init) {
-                     ProjectApp.barbaManager.init();
-                 }
-             } catch(e) {
-                 console.error('Barba init error:', e);
-             }
+                switch(namespace) {
+                    case 'work':
+                        ProjectApp.initWorkPage();
+                        break;
+                    case 'archive':
+                        if (ProjectApp.archivePageModule?.init) {
+                            ProjectApp.archivePageModule.init();
+                        }
+                        break;
+                    case 'about':
+                        if (ProjectApp.pageSpecificModule?.init) {
+                            ProjectApp.pageSpecificModule.init();
+                        }
+                        break;
+                    case 'reportage':
+                        if (ProjectApp.reportageSwiper?.init) {
+                            ProjectApp.reportageSwiper.init();
+                        }
+                        break;
+                    case 'contact':
+                        console.log('⚪ Contact page - no specific init needed');
+                        break;
+                    default:
+                        console.warn('⚠️ Unknown namespace:', namespace);
+                }
 
-             ProjectApp.__bootDone = true;
-         };
+                // 4️⃣ FINALLY: Page entrance animations
+                console.log('✨ Step 4: Initializing page animations');
+                if (ProjectApp.pageAnimations?.initAll) {
+                    ProjectApp.pageAnimations.initAll();
+                }
 
-         if (document.readyState === 'loading') {
-             document.addEventListener('DOMContentLoaded', ProjectApp.bootstrap);
-         } else {
-             ProjectApp.bootstrap();
-         }
-     })();
+                console.log('✅ Bootstrap complete!');
+
+            } catch(e) {
+                console.error('❌ Bootstrap error:', e);
+            }
+
+            ProjectApp.__bootDone = true;
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', ProjectApp.bootstrap);
+        } else {
+            ProjectApp.bootstrap();
+        }
+    })();
 
     // PRELOADER
     (function() {
